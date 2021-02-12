@@ -9,5 +9,7 @@
 *.o
 .qmake.stash
 moc/*
+resources/*
 configure_tests/*/makefile
 autom4te.cache/*
+/cb_find_duplicates.pro
