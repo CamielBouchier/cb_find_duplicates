@@ -1,6 +1,11 @@
-
 aclocal.m4
 *.exe
 *.log
 config.status
 *.o
+.qmake.stash
+config.*
+Makefile
+moc/*
+configure_tests/*/makefile
+autom4te.cache/*
