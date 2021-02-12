@@ -14,7 +14,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <QStandardPaths>
+#include <QSettings>
 
 #include "cb_find_duplicates.h"
 #include "cb_constants.h"
@@ -86,17 +86,27 @@ void cb_log::clean_logdir()
     {
     qInfo() << "Cleaning log dir";
 
+    auto& settings = cb_app->m_user_settings;
+
+    int max_entries = 
+        settings->value("log/max_entries", cb_constants::log::max_entries).toInt();
+    int days_to_keep = 
+        settings->value("log/days_to_keep", cb_constants::log::days_to_keep).toInt();
+
+    settings->setValue("log/max_entries", max_entries);
+    settings->setValue("log/days_to_keep", days_to_keep);
+
     auto now_date = QDateTime::currentDateTime();
     int nr_entries = 0;
     for (auto&& entry_info : QDir(m_logdir).entryInfoList(QDir::Files, QDir::Time))
         {
         nr_entries++;
-        auto expiration_date = entry_info.lastModified().addDays(cb_constants::log::days_to_keep);
+        auto expiration_date = entry_info.lastModified().addDays(days_to_keep);
         qDebug() << nr_entries
                  << entry_info.fileName() 
                  << entry_info.lastModified().toString()
                  << expiration_date.toString();
-        if (now_date > expiration_date or nr_entries > cb_constants::log::max_entries)
+        if (now_date > expiration_date or nr_entries > max_entries)
             {
             if (QFile(entry_info.filePath()).remove())
                 {

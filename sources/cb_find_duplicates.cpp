@@ -9,7 +9,9 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
+#include <QSettings>
 #include <QStandardPaths>
 
 #include <cb_find_duplicates.h>
@@ -32,12 +34,48 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
     QCoreApplication::setApplicationName(cb_constants::application_name);
     QCoreApplication::setApplicationVersion(cb_constants::application_version);
 
+    //
+    // Important for msys environments.
+    //
+
     cout.setf(std::ios::unitbuf);
     cerr.setf(std::ios::unitbuf);
 
+    // 
+    // Standard data_location and its creation. cb_log will need it already.
+    //
+
     m_data_location = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (!QDir(m_data_location).exists())
+        {
+        if (!QDir().mkpath(m_data_location))
+            {
+            QTextStream(stderr) << "Fatal: could not create '" 
+                                << m_data_location 
+                                << "'" 
+                                << Qt::endl;
+            exit(EXIT_FAILURE);
+            }
+        }
+
+    //
+    // logging facility.
+    // 
 
     cb_log::init();
+
+    //
+    // User settings.
+    //
+
+    auto filename = m_data_location + "/" + cb_constants::application_name + ".ini";
+    m_user_settings = make_unique <QSettings>(filename, QSettings::IniFormat);
+    qInfo() << "m_user_settings:" << m_user_settings->fileName();
+
+    //
+    // Clean logdir. We needed the m_user_settings first.
+    //
+
     cb_log::clean_logdir();
 
     qInfo() << "Starting" << applicationName() << applicationVersion();

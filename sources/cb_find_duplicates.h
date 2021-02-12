@@ -9,6 +9,8 @@
 
 #include <QApplication>
  
+class QSettings;
+
 class cb_find_duplicates : public QApplication 
     {
     Q_OBJECT
@@ -17,7 +19,8 @@ class cb_find_duplicates : public QApplication
         cb_find_duplicates(int& argc, char* argv[]);
         ~cb_find_duplicates();
 
-        QString m_data_location;
+        QString                     m_data_location;
+        std::unique_ptr <QSettings> m_user_settings;
     private:
     };
 
