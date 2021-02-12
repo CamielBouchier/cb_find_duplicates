@@ -1,0 +1,6 @@
+
+aclocal.m4
+*.exe
+*.log
+config.status
+*.o

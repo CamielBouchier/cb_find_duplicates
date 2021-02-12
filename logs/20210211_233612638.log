@@ -1,4 +1,0 @@
-I:20210211_233612:687 (sources/cb_find_duplicates.cpp:25) FooBar
-I:20210211_233612:687 (sources/cb_find_duplicates.cpp:31) FooBar Again
-I:20210211_233612:688 (sources/cb_find_duplicates.cpp:32) qInfo()
-I:20210211_233612:688 (sources/cb_find_duplicates.cpp:33) T: 0x17c f: main - Start QT Version: 331522
