@@ -1,0 +1,5 @@
+I:20210212_003745:645 (sources/cb_find_duplicates.cpp:28) Starting "cb_find_duplicates"
+I:20210212_003745:645 (sources/cb_find_duplicates.cpp:29) FooBar
+I:20210212_003745:645 (sources/cb_find_duplicates.cpp:30) qInfo()
+I:20210212_003745:645 (sources/cb_find_duplicates.cpp:31) T: 0x4814 f: main : Start QT Version: 331522
+I:20210212_003745:645 (sources/cb_find_duplicates.cpp:33) T: 0x4814 f: main : Start QT Version: 5.15.2

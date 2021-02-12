@@ -1,0 +1,5 @@
+I:20210211_234159:311 (sources/cb_find_duplicates.cpp:25) FooBar
+I:20210211_234159:311 (sources/cb_find_duplicates.cpp:31) FooBar Again
+I:20210211_234159:311 (sources/cb_find_duplicates.cpp:32) qInfo()
+I:20210211_234159:311 (sources/cb_find_duplicates.cpp:33) T: 0x4470 f: main : Start QT Version: 331522
+F:20210211_234159:311 (sources/cb_find_duplicates.cpp:34) This is fatal!
