@@ -9,18 +9,21 @@
 
 #include <iostream>
 
+#include <QApplication>
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
 
+#include "cb_find_duplicates.h"
 #include "cb_constants.h"
  
 cb_log::log_level cb_log::m_file_log_level    = L_DEBUG;
 cb_log::log_level cb_log::m_console_log_level = L_INFO;
 
-QFile* cb_log::m_file = nullptr;
+QFile*  cb_log::m_file(nullptr);
+QString cb_log::m_logdir("");
 
 //..................................................................................................
  
@@ -48,17 +51,13 @@ void cb_log::init(cb_log::log_level console_log_level,
     m_console_log_level = console_log_level;
     m_file_log_level    = file_log_level;
     
-    // logdir creation.
+    m_logdir = cb_app->m_data_location + "/" + cb_constants::log::logdir_name;
 
-    auto logdir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-                  + "/" 
-                  + cb_constants::log::logdir_name;
-
-    if (!QDir(logdir).exists())
+    if (!QDir(m_logdir).exists())
         {
-        if (!QDir().mkpath(logdir))
+        if (!QDir().mkpath(m_logdir))
             {
-            QTextStream(stderr) << "Fatal: could not create '" << logdir << "'" << Qt::endl;
+            QTextStream(stderr) << "Fatal: could not create '" << m_logdir << "'" << Qt::endl;
             exit(EXIT_FAILURE);
             }
         }
@@ -66,7 +65,7 @@ void cb_log::init(cb_log::log_level console_log_level,
     // logfile creation.
 
     auto logfile_name = 
-        logdir + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmsszzz.log");
+        m_logdir + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmsszzz.log");
     m_file = new QFile(logfile_name);
 	auto success = m_file->open(QIODevice::WriteOnly);
     if (!success)
@@ -79,15 +78,17 @@ void cb_log::init(cb_log::log_level console_log_level,
 	static cb_log log(nullptr);
 
     QTextStream(stdout) << "Logging in: " << logfile_name << Qt::endl;
+    }
 
-    // Cleaning the logdir from too many files. 
-    // (based on date and/or quantity as defined in cb_constants)
-
+//..................................................................................................
+ 
+void cb_log::clean_logdir()
+    {
     qInfo() << "Cleaning log dir";
 
     auto now_date = QDateTime::currentDateTime();
     int nr_entries = 0;
-    for (auto&& entry_info : QDir(logdir).entryInfoList(QDir::Files, QDir::Time))
+    for (auto&& entry_info : QDir(m_logdir).entryInfoList(QDir::Files, QDir::Time))
         {
         nr_entries++;
         auto expiration_date = entry_info.lastModified().addDays(cb_constants::log::days_to_keep);

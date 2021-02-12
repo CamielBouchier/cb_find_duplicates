@@ -27,6 +27,7 @@ class cb_log : public QObject
     public:
         static void init(log_level console_log_level = L_INFO,
                          log_level file_log_level    = L_DEBUG);
+        static void clean_logdir();
 
     private:
 	    cb_log(QObject* parent=nullptr);
@@ -36,6 +37,7 @@ class cb_log : public QObject
                                const QMessageLogContext& context, 
                                const QString&            msg);
 
+        static QString   m_logdir;
 	    static QFile*    m_file;
         static log_level m_console_log_level;
         static log_level m_file_log_level;

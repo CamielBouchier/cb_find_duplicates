@@ -16,7 +16,14 @@ class cb_find_duplicates : public QApplication
     public:
         cb_find_duplicates(int& argc, char* argv[]);
         ~cb_find_duplicates();
+
+        QString m_data_location;
+    private:
     };
+
+//..................................................................................................
+
+extern class cb_find_duplicates* cb_app;
 
 //..................................................................................................
 
