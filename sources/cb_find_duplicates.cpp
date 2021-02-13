@@ -12,6 +12,7 @@
 #include <QDir>
 #include <QFile>
 #include <QMessageBox>
+#include <QScreen>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -37,18 +38,18 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::init(int& argc, char* argv[])
+void cb_find_duplicates::cb_init(int& argc, char* argv[])
     {
     cout.setf(std::ios::unitbuf);   // important for msys environments.
     cerr.setf(std::ios::unitbuf);   // important for msys environments.
-    set_data_location();            // ensuring a valid m_data_location.
+    cb_set_data_location();         // ensuring a valid m_data_location.
     cb_log::init();                 // logging facility, needs m_data_location.
-    set_user_settings();            // ensuring a valid m_user_settings.
+    cb_set_user_settings();         // ensuring a valid m_user_settings.
     cb_log::clean_logdir();         // clean_logdir, needs m_user_settings.
-    install_to_data_location();
-    process_args(argc, argv);       // needs m_user_settings, needed by set_stylesheet.
-    set_stylesheet();
-    create_main_window();
+    cb_install_to_data_location();
+    cb_process_args(argc, argv);    // needs m_user_settings, needed by set_stylesheet.
+    cb_set_stylesheet();
+    cb_launch_main_window();
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
@@ -56,7 +57,7 @@ void cb_find_duplicates::init(int& argc, char* argv[])
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::set_user_settings()
+void cb_find_duplicates::cb_set_user_settings()
     {
     qInfo() << __PRETTY_FUNCTION__;
     auto filename = m_data_location + "/" + cb_constants::application_name + ".ini";
@@ -66,7 +67,7 @@ void cb_find_duplicates::set_user_settings()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::set_data_location()
+void cb_find_duplicates::cb_set_data_location()
     {
     qInfo() << __PRETTY_FUNCTION__;
     m_data_location = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -82,7 +83,7 @@ void cb_find_duplicates::set_data_location()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::recursive_copy(const QString& src_dir, const QString& dst_dir)
+void cb_find_duplicates::cb_recursive_copy(const QString& src_dir, const QString& dst_dir)
     {
     if (not QFileInfo(src_dir).isDir())
         {
@@ -117,14 +118,14 @@ void cb_find_duplicates::recursive_copy(const QString& src_dir, const QString& d
         {
         if (dirname != "." and dirname != "..")
             {
-            recursive_copy(src_dir + "/" + dirname, dst_dir + "/" + dirname);
+            cb_recursive_copy(src_dir + "/" + dirname, dst_dir + "/" + dirname);
             }
         }
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::install_to_data_location()
+void cb_find_duplicates::cb_install_to_data_location()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
@@ -177,7 +178,7 @@ void cb_find_duplicates::install_to_data_location()
         {
         auto src_dir = base_src_dir + "/" + to_copy_dir;
         auto dst_dir = m_data_location + "/" + to_copy_dir;
-        recursive_copy(src_dir, dst_dir);
+        cb_recursive_copy(src_dir, dst_dir);
         }
 
     // Remember we installed by setting the 'version.txt' file.
@@ -188,7 +189,7 @@ void cb_find_duplicates::install_to_data_location()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::process_args(int& argc, char* argv[])
+void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
     {
     qInfo() << __PRETTY_FUNCTION__;
 
@@ -238,7 +239,7 @@ void cb_find_duplicates::process_args(int& argc, char* argv[])
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::set_stylesheet()
+void cb_find_duplicates::cb_set_stylesheet()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
@@ -310,14 +311,22 @@ void cb_find_duplicates::set_stylesheet()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::create_main_window()
+void cb_find_duplicates::cb_launch_main_window()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
+    m_main_window = make_unique<cb_main_window>();
+
     QIcon window_icon;
     window_icon.addPixmap(QPixmap(":/cb_find_duplicates/img/cb_find_duplicates_64px.png"));
-    m_main_window = make_unique<cb_main_window>();
     m_main_window->setWindowIcon(window_icon);
+    
+    auto&& splitter_state = m_user_settings->value("window/main_splitter").toByteArray();
+    m_main_window->main_splitter->restoreState(splitter_state);
+
+    m_main_window->restoreGeometry(m_user_settings->value("window/geometry").toByteArray());
+    m_main_window->restoreState(m_user_settings->value("window/state").toByteArray());
+
     m_main_window->show();
     }
 
@@ -326,6 +335,11 @@ void cb_find_duplicates::create_main_window()
 cb_find_duplicates::~cb_find_duplicates()
     {
     qInfo() << "Exiting:" << applicationName() << applicationVersion();
+
+    m_user_settings->setValue("window/main_splitter", m_main_window->main_splitter->saveState());
+    m_user_settings->setValue("window/geometry",      m_main_window->saveGeometry());
+    m_user_settings->setValue("window/state",         m_main_window->saveState());
+    m_user_settings->sync();
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -333,7 +347,7 @@ cb_find_duplicates::~cb_find_duplicates()
 int main(int argc, char** argv)
     {
     cb_app = new cb_find_duplicates(argc, argv);
-    cb_app->init(argc, argv);
+    cb_app->cb_init(argc, argv);
     cb_app->exec();
     delete cb_app;
     return EXIT_SUCCESS;

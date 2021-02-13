@@ -22,19 +22,19 @@ class cb_find_duplicates : public QApplication
         cb_find_duplicates(int& argc, char* argv[]);
         ~cb_find_duplicates();
 
-        void init(int& argc, char* argv[]);
+        void cb_init(int& argc, char* argv[]);
 
         QString                     m_data_location;
         std::unique_ptr <QSettings> m_user_settings;
     private:
 
-        void set_data_location();
-        void set_user_settings();
-        void install_to_data_location();
-        void set_stylesheet();
-        void process_args(int& argc, char* argv[]);
-        void recursive_copy(const QString& src_dir, const QString& dst_dir);
-        void create_main_window();
+        void cb_set_data_location();
+        void cb_set_user_settings();
+        void cb_install_to_data_location();
+        void cb_set_stylesheet();
+        void cb_process_args(int& argc, char* argv[]);
+        void cb_recursive_copy(const QString& src_dir, const QString& dst_dir);
+        void cb_launch_main_window();
 
         std::unique_ptr <cb_main_window> m_main_window;
 
