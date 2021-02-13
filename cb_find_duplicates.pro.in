@@ -20,12 +20,10 @@ INCLUDEPATH    += sources
 debug
     {
     OBJECTS_DIR  = objects_debug
-    DESTDIR      = build_debug
     }
 release
     {
     OBJECTS_DIR  = objects_release
-    DESTDIR      = build_release
     }
 MOC_DIR         = moc
 UI_HEADERS_DIR  = ui/include

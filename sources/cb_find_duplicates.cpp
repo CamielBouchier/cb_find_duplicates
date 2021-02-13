@@ -75,6 +75,48 @@ void cb_find_duplicates::set_data_location()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::recursive_copy(const QString& src_dir, const QString& dst_dir)
+    {
+    if (not QFileInfo(src_dir).isDir())
+        {
+        auto err_msg = QObject::tr("Fatal: '%1' does not exist.").arg(src_dir);
+        qCritical().noquote() << err_msg;
+        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+        abort();
+        }
+     if (!QDir().mkpath(dst_dir))
+        {
+        auto err_msg = QObject::tr("Fatal: could not create '%1'.").arg(dst_dir);
+        qCritical().noquote() << err_msg;
+        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+        abort();
+        }
+    for (auto&& filename : QDir(src_dir).entryList(QDir::Files))
+        {
+        auto src_file = src_dir + "/" + filename;
+        auto dst_file = dst_dir + "/" + filename;
+        qDebug() << "Copying" << src_file << "=>" << dst_file;
+        QFile::remove(dst_file);
+        if (!QFile::copy(src_file, dst_file))
+            {
+            auto err_msg = 
+                QObject::tr("Fatal: could not copy '%1' => '%2'.").arg(src_file, dst_file);
+            qCritical().noquote() << err_msg;
+            QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+            abort();
+            }
+        }
+    for (auto&& dirname : QDir(src_dir).entryList(QDir::Dirs))
+        {
+        if (dirname != "." and dirname != "..")
+            {
+            recursive_copy(src_dir + "/" + dirname, dst_dir + "/" + dirname);
+            }
+        }
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 void cb_find_duplicates::install_to_data_location()
     {
     qInfo() << __PRETTY_FUNCTION__;
@@ -108,40 +150,27 @@ void cb_find_duplicates::install_to_data_location()
         }
 
     // We found out there is a reason to install ...
-    auto to_copy_list = QStringList() << "themes" << "lua_scripts";
+
+    QStringList to_copy_list;
+
+    to_copy_list << "themes" 
+                 << "lua_scripts";
+
+    auto base_src_dir = QApplication::applicationDirPath();
+    auto base_src_dirname = QDir(base_src_dir).dirName();
+    if (base_src_dirname == "debug" or base_src_dirname == "build") // While developing.
+        {
+        auto q_base_src_dir = QDir(base_src_dir);
+        q_base_src_dir.cdUp();
+        base_src_dir = q_base_src_dir.canonicalPath();
+        }
+    qInfo() << "base_src_dir:" << base_src_dir;
+
     for (auto&& to_copy_dir : to_copy_list)
         {
-        auto src_dir = QApplication::applicationDirPath() + "/" + to_copy_dir;
+        auto src_dir = base_src_dir + "/" + to_copy_dir;
         auto dst_dir = m_data_location + "/" + to_copy_dir;
-        if (!QDir(src_dir).exists())
-            {
-            auto err_msg = QObject::tr("Fatal: '%1' does not exist").arg(src_dir);
-            qCritical() << err_msg;
-            QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
-            abort();
-            }
-        if (!QDir().mkpath(dst_dir))
-            {
-            auto err_msg = QObject::tr("Fatal: could not create '%1'").arg(dst_dir);
-            qCritical() << err_msg;
-            QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
-            abort();
-            }
-        for (auto&& filename : QDir(src_dir).entryList(QDir::Files))
-            {
-            auto src_file = src_dir + "/" + filename;
-            auto dst_file = dst_dir + "/" + filename;
-            qDebug() << "Copying" << src_file << "=>" << dst_file;
-            QFile::remove(dst_file);
-            if (!QFile::copy(src_file, dst_file))
-                {
-                auto err_msg = 
-                    QObject::tr("Fatal: could not copy '%1' => '%2'").arg(src_file, dst_file);
-                qCritical() << err_msg;
-                QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
-                abort();
-                }
-            }
+        recursive_copy(src_dir, dst_dir);
         }
 
     // Remember we installed by setting the 'version.txt' file.

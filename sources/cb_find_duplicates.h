@@ -28,6 +28,7 @@ class cb_find_duplicates : public QApplication
         void install_to_data_location();
         void set_stylesheet();
         void process_args(int& argc, char* argv[]);
+        void recursive_copy(const QString& src_dir, const QString& dst_dir);
 
         QHash<QString, QString> m_constants_in_stylesheet;
     };
