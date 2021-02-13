@@ -13,7 +13,7 @@ CONFIG         += @CONSOLE@
 TEMPLATE        = app
 TARGET          = cb_find_duplicates
 DEPENDPATH     += .
-DEPENDPATH     += UI
+DEPENDPATH     += ui
 DEPENDPATH     += sources
 INCLUDEPATH    += .
 INCLUDEPATH    += sources
@@ -26,7 +26,7 @@ release
     OBJECTS_DIR  = objects_release
     }
 MOC_DIR         = moc
-UI_HEADERS_DIR  = ui/include
+UI_DIR          = ui/include
 RCC_DIR         = resources
 RESOURCES       = cb_find_duplicates.qrc
 

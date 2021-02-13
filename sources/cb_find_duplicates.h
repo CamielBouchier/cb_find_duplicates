@@ -11,6 +11,8 @@
  
 class QSettings;
 
+class cb_main_window;
+
 class cb_find_duplicates : public QApplication 
     {
     Q_OBJECT
@@ -18,6 +20,8 @@ class cb_find_duplicates : public QApplication
     public:
         cb_find_duplicates(int& argc, char* argv[]);
         ~cb_find_duplicates();
+
+        void init(int& argc, char* argv[]);
 
         QString                     m_data_location;
         std::unique_ptr <QSettings> m_user_settings;
@@ -29,6 +33,9 @@ class cb_find_duplicates : public QApplication
         void set_stylesheet();
         void process_args(int& argc, char* argv[]);
         void recursive_copy(const QString& src_dir, const QString& dst_dir);
+        void create_main_window();
+
+        std::unique_ptr <cb_main_window> m_main_window;
 
         QHash<QString, QString> m_constants_in_stylesheet;
     };

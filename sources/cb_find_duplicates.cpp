@@ -16,8 +16,10 @@
 #include <QStandardPaths>
 
 #include <cb_find_duplicates.h>
+
 #include <cb_constants.h>
 #include <cb_log.h>
+#include <cb_main_window.h>
 
 using namespace std;
 
@@ -31,8 +33,12 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
     QCoreApplication::setOrganizationDomain(cb_constants::domain_name);
     QCoreApplication::setApplicationName(cb_constants::application_name);
     QCoreApplication::setApplicationVersion(cb_constants::application_version);
+    }
 
-    cb_app = this;                  // needed early, e.g for sharing m_data_location.
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::init(int& argc, char* argv[])
+    {
     cout.setf(std::ios::unitbuf);   // important for msys environments.
     cerr.setf(std::ios::unitbuf);   // important for msys environments.
     set_data_location();            // ensuring a valid m_data_location.
@@ -42,6 +48,7 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
     install_to_data_location();
     process_args(argc, argv);       // needs m_user_settings, needed by set_stylesheet.
     set_stylesheet();
+    create_main_window();
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
@@ -303,6 +310,16 @@ void cb_find_duplicates::set_stylesheet()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::create_main_window()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    m_main_window = make_unique<cb_main_window>();
+    m_main_window->show();
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 cb_find_duplicates::~cb_find_duplicates()
     {
     qInfo() << "Exiting:" << applicationName() << applicationVersion();
@@ -312,7 +329,9 @@ cb_find_duplicates::~cb_find_duplicates()
 
 int main(int argc, char** argv)
     {
-    new cb_find_duplicates(argc, argv);
+    cb_app = new cb_find_duplicates(argc, argv);
+    cb_app->init(argc, argv);
+    cb_app->exec();
     delete cb_app;
     return EXIT_SUCCESS;
     }

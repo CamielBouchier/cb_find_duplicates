@@ -5,27 +5,26 @@
 //
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#pragma once
 
-#include <QString>
- 
+#include <QDebug>
+
+#include "cb_constants.h"
+#include "cb_main_window.h"
+
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-namespace cb_constants 
-	{
-    const QString application_name    ("cb_find_duplicates");
-    const QString application_version ("0.1.0");
-    const QString organization_name   ("cb_software");
-    const QString domain_name         ("camiel.bouchier.be");
+cb_main_window::cb_main_window() : QMainWindow(nullptr)
+    {
+    setupUi(this);
+    setWindowTitle(cb_constants::application_name);
+    };
 
-    namespace log
-        {
-        // In AppDataLocal
-        const QString logdir_name  ("logs");
-        const int     days_to_keep (5);
-        const int     max_entries  (20);
-        }
-	}
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+cb_main_window::~cb_main_window()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+    }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
