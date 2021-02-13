@@ -84,7 +84,7 @@ void cb_log::init(cb_log::log_level console_log_level,
  
 void cb_log::clean_logdir()
     {
-    qInfo() << "Cleaning log dir";
+    qInfo() << __PRETTY_FUNCTION__;
 
     auto& settings = cb_app->m_user_settings;
 
