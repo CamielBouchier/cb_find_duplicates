@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QMessageBox>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -50,11 +51,10 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
         {
         if (!QDir().mkpath(m_data_location))
             {
-            QTextStream(stderr) << "Fatal: could not create '" 
-                                << m_data_location 
-                                << "'" 
-                                << Qt::endl;
-            exit(EXIT_FAILURE);
+            auto err_msg = QObject::tr("Fatal: could not create '%1'").arg(m_data_location);
+            qCritical() << err_msg;
+            QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+            abort();
             }
         }
 
@@ -78,6 +78,14 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
 
     cb_log::clean_logdir();
 
+    //
+    //
+    //
+
+    install_to_data_location();
+
+   
+
     qInfo() << "Starting" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
 
@@ -85,6 +93,79 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
     // qFatal("This is fatal!");
     // qILog() << "Start QT Version:" << qVersion();
 
+    }
+
+//..................................................................................................
+
+void cb_find_duplicates::install_to_data_location()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    // Do we have a version.txt file that matches ours? If so no install done.
+    QFile version_installed_file(m_data_location + "/version.txt");
+    auto do_install = false;
+    if (!version_installed_file.exists())
+        {
+        do_install = true;
+        qInfo() << "Installing because no version installed";
+        }
+    else
+        {
+        QString version_installed;
+        version_installed_file.open(QIODevice::ReadOnly);
+        QTextStream(&version_installed_file) >> version_installed;
+        version_installed_file.close();
+        if (version_installed != cb_constants::application_version)
+            {
+            do_install = true;
+            qInfo() << "Installing because different version installed";
+            }
+        }
+
+    // No reason to install ...
+    if (!do_install) return;
+
+    // We found out there is a reason to install ...
+    auto to_copy_list = QStringList() << "themes" << "lua_scripts";
+    for (auto&& to_copy_dir : to_copy_list)
+        {
+        auto src_dir = QApplication::applicationDirPath() + "/" + to_copy_dir;
+        auto dst_dir = m_data_location + "/" + to_copy_dir;
+        if (!QDir(src_dir).exists())
+            {
+            auto err_msg = QObject::tr("Fatal: '%1' does not exist").arg(src_dir);
+            qCritical() << err_msg;
+            QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+            abort();
+            }
+        if (!QDir().mkpath(dst_dir))
+            {
+            auto err_msg = QObject::tr("Fatal: could not create '%1'").arg(dst_dir);
+            qCritical() << err_msg;
+            QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+            abort();
+            }
+        for (auto&& filename : QDir(src_dir).entryList(QDir::Files))
+            {
+            auto src_file = src_dir + "/" + filename;
+            auto dst_file = dst_dir + "/" + filename;
+            qDebug() << "Copying" << src_file << "=>" << dst_file;
+            QFile::remove(dst_file);
+            if (!QFile::copy(src_file, dst_file))
+                {
+                auto err_msg = 
+                    QObject::tr("Fatal: could not copy '%1' => '%2'").arg(src_file, dst_file);
+                qCritical() << err_msg;
+                QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+                abort();
+                }
+            }
+        }
+
+    // Remember we installed through the 'version.txt' file.
+    version_installed_file.open(QIODevice::WriteOnly);
+    QTextStream(&version_installed_file) << cb_constants::application_version;
+    version_installed_file.close();
     }
 
 //..................................................................................................

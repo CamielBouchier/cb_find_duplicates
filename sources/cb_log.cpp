@@ -102,10 +102,12 @@ void cb_log::clean_logdir()
         {
         nr_entries++;
         auto expiration_date = entry_info.lastModified().addDays(days_to_keep);
+        /*
         qDebug() << nr_entries
                  << entry_info.fileName() 
                  << entry_info.lastModified().toString()
                  << expiration_date.toString();
+        */
         if (now_date > expiration_date or nr_entries > max_entries)
             {
             if (QFile(entry_info.filePath()).remove())
