@@ -1,9 +1,9 @@
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 //
 // $BeginLicense$
 // $EndLicense$
 //
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #include <iostream>
 
@@ -21,7 +21,7 @@
 
 using namespace std;
 
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cb_find_duplicates* cb_app = nullptr;
 
@@ -40,12 +40,14 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
     set_user_settings();            // ensuring a valid m_user_settings.
     cb_log::clean_logdir();         // clean_logdir, needs m_user_settings.
     install_to_data_location();
+    process_args(argc, argv);       // needs m_user_settings, needed by set_stylesheet.
+    set_stylesheet();
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
     }
 
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 void cb_find_duplicates::set_user_settings()
     {
@@ -55,7 +57,7 @@ void cb_find_duplicates::set_user_settings()
     qInfo() << "m_user_settings:" << m_user_settings->fileName();
     }
 
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 void cb_find_duplicates::set_data_location()
     {
@@ -71,7 +73,7 @@ void cb_find_duplicates::set_data_location()
     qInfo() << "m_data_location:" << m_data_location;
     }
 
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 void cb_find_duplicates::install_to_data_location()
     {
@@ -142,20 +144,142 @@ void cb_find_duplicates::install_to_data_location()
             }
         }
 
-    // Remember we installed through the 'version.txt' file.
+    // Remember we installed by setting the 'version.txt' file.
     version_installed_file.open(QIODevice::WriteOnly);
     QTextStream(&version_installed_file) << cb_constants::application_version;
     version_installed_file.close();
     }
 
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::process_args(int& argc, char* argv[])
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    if (argc == 1) return;  // Do only effort if there are actually args.
+
+    auto exe_name = QFileInfo(argv[0]).fileName();
+    auto err_msg  = QObject::tr("Usage : %1 " "[-t theme]").arg(exe_name);
+    auto cmd_line = exe_name;
+    for (short i=1; i<argc; i++) 
+        {
+        cmd_line += QString(" ") + argv[i];
+        }
+
+    auto local_abort = [&]()
+        {
+        qCritical() << err_msg;
+        qCritical() << cmd_line;
+        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg + '\n' + cmd_line);
+        abort();
+        };
+
+    if (argc % 2 != 1) // argc must be odd
+        {
+        local_abort();
+        }
+
+    short idx = 1;
+    while (idx < argc) 
+        {
+        QString switch_(argv[idx++]);
+        QString value(argv[idx++]);
+        if (switch_ == "-t") 
+            {
+            if (!value.endsWith(".cbt")) 
+                {
+                value.append(".cbt");
+                }
+            qInfo() << "Setting theme:" << value;
+            m_user_settings->setValue("/theme/file", value);
+            } 
+        else 
+            { 
+            local_abort();
+            }
+        }
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::set_stylesheet()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    auto default_theme_file = m_data_location + "/themes/default.cbt";
+    if (!QFile(default_theme_file).exists())
+        {
+        auto err_msg = QObject::tr("Fatal: '%1' does not exist").arg(default_theme_file);
+        qCritical() << err_msg;
+        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+        abort();
+        }
+
+    auto theme_file = m_data_location + "/themes/" + 
+                      m_user_settings->value("/theme/file", default_theme_file).toString();
+    if (!QFile(theme_file).exists())
+        {
+        theme_file = default_theme_file;
+        }
+
+    m_user_settings->setValue("/theme/file", QFileInfo(theme_file).fileName());
+    qInfo() << "theme_file:" << theme_file;
+
+    m_constants_in_stylesheet.clear();  // clearing ensures we can be called multiple times.
+
+    QFile stylesheet_file(theme_file);
+    if (not stylesheet_file.open(QIODevice::ReadOnly | QIODevice::Text)) 
+        {
+        qWarning() << QObject::tr("Could not open themefile:") << theme_file;
+        return;
+        }
+
+    QTextStream stylesheet_stream(&stylesheet_file);
+    QString stylesheet;
+    while (not stylesheet_stream.atEnd()) 
+        {
+        QString line = stylesheet_stream.readLine().trimmed();
+        if (line.isEmpty() or line.startsWith(";"))   // comment
+            {
+            continue;
+            }
+        if (line.startsWith("@"))   // constant definition
+            {
+            QStringList definition = line.split("=");
+            m_constants_in_stylesheet[definition[0].trimmed()] = definition[1].trimmed();
+            continue;
+            }
+        if (line.contains("@"))     // replacement, rude inefficient algo, but serving purpose.
+            {
+            QHashIterator <QString,QString> i(m_constants_in_stylesheet);
+            while (i.hasNext()) 
+                {
+                i.next();
+                line.replace(i.key(),i.value());
+                }
+            }
+        stylesheet += line + " \n";
+        }
+    stylesheet_file.close();
+
+    if (m_constants_in_stylesheet.contains("@MANDATORY_STYLE")) 
+        {
+        setStyle(m_constants_in_stylesheet.value("@MANDATORY_STYLE")); // preset a style.
+        }
+
+    // qDebug().noquote() << "stylesheet:" << stylesheet;
+
+    setStyleSheet(stylesheet);  // apply the stylesheet.
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cb_find_duplicates::~cb_find_duplicates()
     {
     qInfo() << "Exiting:" << applicationName() << applicationVersion();
     }
 
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 int main(int argc, char** argv)
     {
@@ -164,6 +288,6 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
     }
 
-//..................................................................................................
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 // vim: syntax=cpp ts=4 sw=4 sts=4 sr et columns=100

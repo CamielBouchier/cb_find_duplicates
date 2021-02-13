@@ -3,6 +3,7 @@
 /config.h
 /config.log
 /Makefile
+/Makefile.*
 *.exe
 *.log
 *.o

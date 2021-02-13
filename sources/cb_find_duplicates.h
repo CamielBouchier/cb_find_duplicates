@@ -22,9 +22,14 @@ class cb_find_duplicates : public QApplication
         QString                     m_data_location;
         std::unique_ptr <QSettings> m_user_settings;
     private:
+
         void set_data_location();
         void set_user_settings();
         void install_to_data_location();
+        void set_stylesheet();
+        void process_args(int& argc, char* argv[]);
+
+        QHash<QString, QString> m_constants_in_stylesheet;
     };
 
 //..................................................................................................
