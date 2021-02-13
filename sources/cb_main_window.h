@@ -15,12 +15,18 @@ class cb_main_window : public QMainWindow, public Ui::cb_main_window
 	{
     Q_OBJECT
 
+    enum cb_config {config_start, config_walking, config_selecting};
+
     public:
 
         cb_main_window();
         ~cb_main_window();
 
     protected:
+        void cb_set_config(cb_config config);
+        void cb_reset_progress_box();
+
+        void closeEvent(QCloseEvent* event);
     };
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

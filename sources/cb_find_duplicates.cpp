@@ -320,6 +320,7 @@ void cb_find_duplicates::cb_launch_main_window()
     QIcon window_icon;
     window_icon.addPixmap(QPixmap(":/cb_find_duplicates/img/cb_find_duplicates_64px.png"));
     m_main_window->setWindowIcon(window_icon);
+    m_main_window->setWindowTitle(cb_constants::application_name);
     
     auto&& splitter_state = m_user_settings->value("window/main_splitter").toByteArray();
     m_main_window->main_splitter->restoreState(splitter_state);
@@ -332,8 +333,17 @@ void cb_find_duplicates::cb_launch_main_window()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::cb_on_quit()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+    exit(EXIT_SUCCESS);
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 cb_find_duplicates::~cb_find_duplicates()
     {
+    qInfo() << __PRETTY_FUNCTION__;
     qInfo() << "Exiting:" << applicationName() << applicationVersion();
 
     m_user_settings->setValue("window/main_splitter", m_main_window->main_splitter->saveState());

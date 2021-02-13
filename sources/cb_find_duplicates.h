@@ -24,9 +24,12 @@ class cb_find_duplicates : public QApplication
 
         void cb_init(int& argc, char* argv[]);
 
+        void cb_on_quit();
+
         QString                     m_data_location;
         std::unique_ptr <QSettings> m_user_settings;
     private:
+
 
         void cb_set_data_location();
         void cb_set_user_settings();

@@ -177,7 +177,7 @@ void cb_log::cb_handler(QtMsgType msg_type, const QMessageLogContext& context, c
     if (msg_type == QtFatalMsg) 
         {
         QTextStream(stderr) << "Aborting." << Qt::endl;
-        exit(EXIT_FAILURE);
+        abort();
         }
     }
  
