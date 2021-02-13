@@ -8,6 +8,7 @@
 #pragma once
 
 #include <QApplication>
+#include <QIcon>
  
 class QSettings;
 

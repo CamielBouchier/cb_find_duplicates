@@ -1,4 +1,16 @@
+<!-- 
+
+$BeginLicense$
+$EndLicense$
+
+-->
+
 <RCC>
-  <qresource prefix="cb_find_duplicates" >
+  	<qresource prefix="cb_find_duplicates" >
+	    <file>img/cb_find_duplicates_64px.png</file>
   </qresource>
 </RCC>
+
+<!-- 
+vim: syntax=xml ts=4 sw=4 sts=4 sr et columns=100 
+-->

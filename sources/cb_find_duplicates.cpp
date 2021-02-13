@@ -314,7 +314,10 @@ void cb_find_duplicates::create_main_window()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
+    QIcon window_icon;
+    window_icon.addPixmap(QPixmap(":/cb_find_duplicates/img/cb_find_duplicates_64px.png"));
     m_main_window = make_unique<cb_main_window>();
+    m_main_window->setWindowIcon(window_icon);
     m_main_window->show();
     }
 
