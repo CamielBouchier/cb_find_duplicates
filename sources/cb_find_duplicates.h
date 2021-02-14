@@ -27,6 +27,7 @@ class cb_find_duplicates : public QApplication
         void cb_on_about();
         void cb_on_log();
         void cb_on_quit();
+        void cb_on_language();
 
         QString                     m_data_location;
         std::unique_ptr <QSettings> m_user_settings;
@@ -42,8 +43,8 @@ class cb_find_duplicates : public QApplication
         void cb_launch_main_window();
 
         std::unique_ptr <cb_main_window> m_main_window;
-
-        QHash<QString, QString> m_constants_in_stylesheet;
+        QHash<QString, QString>          m_constants_in_stylesheet;
+        QString                          m_language;
     };
 
 //..................................................................................................

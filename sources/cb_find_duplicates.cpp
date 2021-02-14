@@ -336,6 +336,28 @@ void cb_find_duplicates::cb_launch_main_window()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::cb_on_language()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+    if (sender() == m_main_window->action_dutch) 
+        {
+        m_main_window->action_dutch->setChecked(true);
+        m_main_window->action_english->setChecked(false);
+        m_language = "nl_BE";
+        }
+    else if (sender() == m_main_window->action_english)
+        {
+        m_main_window->action_dutch->setChecked(false);
+        m_main_window->action_english->setChecked(true);
+        m_language = "en_US";
+        }
+    QMessageBox::information(m_main_window.get(),
+                             tr("Please restart"),
+                             tr("The language setting will be changed next time you start."));
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 void cb_find_duplicates::cb_on_log()
     {
     qInfo() << __PRETTY_FUNCTION__;

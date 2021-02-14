@@ -100,12 +100,12 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
 
     // Per language.
 
-        /*
-    action_dutch.triggered.connect(self.the_app.on_language)
-    action_english.triggered.connect(self.the_app.on_language)
+    connect(action_dutch,   &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_language);
+    connect(action_english, &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_language);
 
     // Other connects.
 
+        /*
     tb_start_search.clicked.connect(self.the_app.on_start_search)
     tb_stop_search.clicked.connect(self.the_app.on_stop_search)
     tb_walk_fail.clicked.connect(self.the_app.on_walk_fail_detail)
