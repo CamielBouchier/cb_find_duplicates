@@ -96,11 +96,11 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
 
     connect(action_quit,  &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_quit);
     connect(action_about, &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_about);
-        /*
-    action_log.triggered.connect(self.the_app.on_log)
+    connect(action_log,   &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_log);
 
     // Per language.
 
+        /*
     action_dutch.triggered.connect(self.the_app.on_language)
     action_english.triggered.connect(self.the_app.on_language)
 

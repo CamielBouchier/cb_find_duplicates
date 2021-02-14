@@ -22,12 +22,14 @@ class cb_log : public QObject
     {
 	Q_OBJECT
 
-    enum log_level {L_DEBUG, L_INFO, L_WARNING, L_ERROR};
+    enum log_level {debug, info, warning, error};
 
     public:
-        static void init(log_level console_log_level = L_INFO,
-                         log_level file_log_level    = L_DEBUG);
-        static void clean_logdir();
+        static void cb_init(log_level console_log_level = info,
+                            log_level file_log_level    = debug);
+        static void cb_clean_logdir();
+
+        static QString m_logfile_name;
 
     private:
 	    cb_log(QObject* parent=nullptr);

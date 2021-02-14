@@ -9,6 +9,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFile>
 #include <QMessageBox>
@@ -45,9 +46,9 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
     cout.setf(std::ios::unitbuf);   // important for msys environments.
     cerr.setf(std::ios::unitbuf);   // important for msys environments.
     cb_set_data_location();         // ensuring a valid m_data_location.
-    cb_log::init();                 // logging facility, needs m_data_location.
+    cb_log::cb_init();              // logging facility, needs m_data_location.
     cb_set_user_settings();         // ensuring a valid m_user_settings.
-    cb_log::clean_logdir();         // clean_logdir, needs m_user_settings.
+    cb_log::cb_clean_logdir();      // clean_logdir, needs m_user_settings.
     cb_install_to_data_location();
     cb_process_args(argc, argv);    // needs m_user_settings, needed by set_stylesheet.
     cb_set_stylesheet();
@@ -331,6 +332,14 @@ void cb_find_duplicates::cb_launch_main_window()
     m_main_window->restoreState(m_user_settings->value("window/state").toByteArray());
 
     m_main_window->show();
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::cb_on_log()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+    QDesktopServices::openUrl(QUrl(cb_log::m_logfile_name, QUrl::TolerantMode));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -19,11 +19,12 @@
 #include "cb_find_duplicates.h"
 #include "cb_constants.h"
  
-cb_log::log_level cb_log::m_file_log_level    = L_DEBUG;
-cb_log::log_level cb_log::m_console_log_level = L_INFO;
+cb_log::log_level cb_log::m_file_log_level    = debug;
+cb_log::log_level cb_log::m_console_log_level = info;
 
 QFile*  cb_log::m_file(nullptr);
 QString cb_log::m_logdir("");
+QString cb_log::m_logfile_name;
 
 //..................................................................................................
  
@@ -45,8 +46,8 @@ cb_log::~cb_log()
 
 //..................................................................................................
  
-void cb_log::init(cb_log::log_level console_log_level,
-                  cb_log::log_level file_log_level)
+void cb_log::cb_init(cb_log::log_level console_log_level,
+                     cb_log::log_level file_log_level)
     {
     m_console_log_level = console_log_level;
     m_file_log_level    = file_log_level;
@@ -64,25 +65,25 @@ void cb_log::init(cb_log::log_level console_log_level,
 
     // logfile creation.
 
-    auto logfile_name = 
+    m_logfile_name = 
         m_logdir + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmsszzz.log");
-    m_file = new QFile(logfile_name);
+    m_file = new QFile(m_logfile_name);
 	auto success = m_file->open(QIODevice::WriteOnly);
     if (!success)
         {
-        QTextStream(stderr) << "Could not open '" << logfile_name << "'. Aborting." << Qt::endl;
+        QTextStream(stderr) << "Could not open '" << m_logfile_name << "'. Aborting." << Qt::endl;
         exit(EXIT_FAILURE);
         }
 
     // cb_log instance
 	static cb_log log(nullptr);
 
-    QTextStream(stdout) << "Logging in: " << logfile_name << Qt::endl;
+    QTextStream(stdout) << "Logging in: " << m_logfile_name << Qt::endl;
     }
 
 //..................................................................................................
  
-void cb_log::clean_logdir()
+void cb_log::cb_clean_logdir()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
