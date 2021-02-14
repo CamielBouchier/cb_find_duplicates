@@ -1,9 +1,11 @@
 /aclocal.m4
+/cb_find_duplicates.pro
 /config.status
 /config.h
 /config.log
 /Makefile
 /Makefile.*
+/object_script.*
 *.exe
 *.log
 *.o
@@ -12,4 +14,3 @@ moc/*
 resources/*
 configure_tests/*/makefile
 autom4te.cache/*
-/cb_find_duplicates.pro

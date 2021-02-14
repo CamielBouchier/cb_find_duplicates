@@ -10,6 +10,7 @@ CONFIG         -= debug
 CONFIG         -= release
 CONFIG         += debug_and_release
 CONFIG         += @CONSOLE@
+CONFIG         += silent
 TEMPLATE        = app
 TARGET          = cb_find_duplicates
 DEPENDPATH     += .

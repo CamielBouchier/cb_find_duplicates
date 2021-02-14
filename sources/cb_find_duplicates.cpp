@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
@@ -19,6 +20,7 @@
 
 #include <cb_constants.h>
 #include <cb_dialog.h>
+#include <cb_filesystem_model.h>
 #include <cb_find_duplicates.h>
 #include <cb_log.h>
 #include <cb_main_window.h>
@@ -47,12 +49,14 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
     cerr.setf(std::ios::unitbuf);   // important for msys environments.
     cb_set_data_location();         // ensuring a valid m_data_location.
     cb_log::cb_init();              // logging facility, needs m_data_location.
+    cb_set_temp_location();         // ensuring a valid m_temp_location.
     cb_set_user_settings();         // ensuring a valid m_user_settings.
     cb_log::cb_clean_logdir();      // clean_logdir, needs m_user_settings.
     cb_install_to_data_location();
     cb_process_args(argc, argv);    // needs m_user_settings, needed by set_stylesheet.
     cb_set_stylesheet();
     cb_launch_main_window();
+    cb_install_filesystem_model();
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
@@ -73,7 +77,9 @@ void cb_find_duplicates::cb_set_user_settings()
 void cb_find_duplicates::cb_set_data_location()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
     m_data_location = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+
     if (!QDir().mkpath(m_data_location))
         {
         auto err_msg = tr("Fatal: could not create '%1'").arg(m_data_location);
@@ -81,7 +87,31 @@ void cb_find_duplicates::cb_set_data_location()
         QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
         abort();
         }
+
     qInfo() << "m_data_location:" << m_data_location;
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::cb_set_temp_location()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    m_temp_location = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    m_temp_location += "/";
+    m_temp_location += QDateTime::currentDateTime().toString("yyyyMMdd_hhmmsszzz");
+    m_temp_location += "_";
+    m_temp_location += cb_constants::application_name;
+
+    if (!QDir().mkpath(m_temp_location))
+        {
+        auto err_msg = tr("Fatal: could not create '%1'").arg(m_temp_location);
+        qCritical() << err_msg;
+        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
+        abort();
+        }
+
+    qInfo() << "m_temp_location:" << m_temp_location;
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -336,9 +366,46 @@ void cb_find_duplicates::cb_launch_main_window()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::cb_install_filesystem_model()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    // Our custom filesystem_model (with partial selects etc.)
+    m_filesystem_model = make_unique<cb_filesystem_model>();
+    m_filesystem_model->setFilter(QDir::AllDirs | QDir::NoDot | QDir::NoDotDot | QDir::Hidden);
+    m_filesystem_model->setRootPath(QDir::rootPath());
+
+    // Connecting the tv (treeview) directory selector to our filesystem model
+    m_main_window->tv_dir_selector->setModel(m_filesystem_model.get());
+
+    // Setting column widths.
+    int dir_selector_col0_width = 
+        m_user_settings->value("window/dir_selector_col0_width", 400).toInt();
+    m_main_window->tv_dir_selector->setColumnWidth(0, dir_selector_col0_width);
+
+    // Hide "Size", "Type" and "Date Modified" in the treeview directory selector.
+    m_main_window->tv_dir_selector->setColumnHidden(1, true);
+    m_main_window->tv_dir_selector->setColumnHidden(2, true);
+    m_main_window->tv_dir_selector->setColumnHidden(3, true);
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 void cb_find_duplicates::cb_on_start_search()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
+    m_failed_logfile.setFileName(m_temp_location + "/failed.log");
+    m_failed_logfile.open(QIODevice::WriteOnly | QIODevice::Text);
+
+    m_main_window->cb_set_config(cb_main_window::config_walking);
+
+    // XXX result_model->cb_reset
+
+    auto dirs_to_handle = m_filesystem_model->cb_get_selected();
+    qInfo() << "dirs_to_handle:" << dirs_to_handle;
+    
+
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -374,6 +441,7 @@ void cb_find_duplicates::cb_on_action()
 void cb_find_duplicates::cb_on_walk_fail_detail()
     {
     qInfo() << __PRETTY_FUNCTION__;
+    QDesktopServices::openUrl(QUrl("file:///" + m_failed_logfile.fileName(), QUrl::TolerantMode));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -463,9 +531,14 @@ cb_find_duplicates::~cb_find_duplicates()
     qInfo() << __PRETTY_FUNCTION__;
     qInfo() << "Exiting:" << applicationName() << applicationVersion();
 
-    m_user_settings->setValue("window/main_splitter", m_main_window->main_splitter->saveState());
-    m_user_settings->setValue("window/geometry",      m_main_window->saveGeometry());
-    m_user_settings->setValue("window/state",         m_main_window->saveState());
+    m_user_settings->setValue("window/dir_selector_col0_width", 
+                              m_main_window->tv_dir_selector->columnWidth(0));
+    m_user_settings->setValue("window/main_splitter", 
+                              m_main_window->main_splitter->saveState());
+    m_user_settings->setValue("window/geometry",      
+                              m_main_window->saveGeometry());
+    m_user_settings->setValue("window/state",         
+                              m_main_window->saveState());
     m_user_settings->sync();
     }
 
