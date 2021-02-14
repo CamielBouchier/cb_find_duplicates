@@ -16,9 +16,9 @@
 #include <QSettings>
 #include <QStandardPaths>
 
-#include <cb_find_duplicates.h>
-
 #include <cb_constants.h>
+#include <cb_dialog.h>
+#include <cb_find_duplicates.h>
 #include <cb_log.h>
 #include <cb_main_window.h>
 
@@ -26,7 +26,9 @@ using namespace std;
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-cb_find_duplicates* cb_app = nullptr;
+cb_find_duplicates* cb_app = nullptr;   // for global referencing, like qApp.
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(argc, argv)
     {
@@ -73,9 +75,9 @@ void cb_find_duplicates::cb_set_data_location()
     m_data_location = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     if (!QDir().mkpath(m_data_location))
         {
-        auto err_msg = QObject::tr("Fatal: could not create '%1'").arg(m_data_location);
+        auto err_msg = tr("Fatal: could not create '%1'").arg(m_data_location);
         qCritical() << err_msg;
-        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
         abort();
         }
     qInfo() << "m_data_location:" << m_data_location;
@@ -87,16 +89,16 @@ void cb_find_duplicates::cb_recursive_copy(const QString& src_dir, const QString
     {
     if (not QFileInfo(src_dir).isDir())
         {
-        auto err_msg = QObject::tr("Fatal: '%1' does not exist.").arg(src_dir);
+        auto err_msg = tr("Fatal: '%1' does not exist.").arg(src_dir);
         qCritical().noquote() << err_msg;
-        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
         abort();
         }
      if (!QDir().mkpath(dst_dir))
         {
-        auto err_msg = QObject::tr("Fatal: could not create '%1'.").arg(dst_dir);
+        auto err_msg = tr("Fatal: could not create '%1'.").arg(dst_dir);
         qCritical().noquote() << err_msg;
-        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
         abort();
         }
     for (auto&& filename : QDir(src_dir).entryList(QDir::Files))
@@ -107,10 +109,9 @@ void cb_find_duplicates::cb_recursive_copy(const QString& src_dir, const QString
         QFile::remove(dst_file);
         if (!QFile::copy(src_file, dst_file))
             {
-            auto err_msg = 
-                QObject::tr("Fatal: could not copy '%1' => '%2'.").arg(src_file, dst_file);
+            auto err_msg = tr("Fatal: could not copy '%1' => '%2'.").arg(src_file, dst_file);
             qCritical().noquote() << err_msg;
-            QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+            QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
             abort();
             }
         }
@@ -161,7 +162,8 @@ void cb_find_duplicates::cb_install_to_data_location()
 
     QStringList to_copy_list;
 
-    to_copy_list << "themes" 
+    to_copy_list << "about"
+                 << "themes" 
                  << "lua_scripts";
 
     auto base_src_dir = QApplication::applicationDirPath();
@@ -196,7 +198,7 @@ void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
     if (argc == 1) return;  // Do only effort if there are actually args.
 
     auto exe_name = QFileInfo(argv[0]).fileName();
-    auto err_msg  = QObject::tr("Usage : %1 " "[-t theme]").arg(exe_name);
+    auto err_msg  = tr("Usage : %1 " "[-t theme]").arg(exe_name);
     auto cmd_line = exe_name;
     for (short i=1; i<argc; i++) 
         {
@@ -207,7 +209,7 @@ void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
         {
         qCritical() << err_msg;
         qCritical() << cmd_line;
-        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg + '\n' + cmd_line);
+        QMessageBox::critical(nullptr, tr("Aborting"), err_msg + '\n' + cmd_line);
         abort();
         };
 
@@ -246,9 +248,9 @@ void cb_find_duplicates::cb_set_stylesheet()
     auto default_theme_file = m_data_location + "/themes/default.cbt";
     if (!QFile(default_theme_file).exists())
         {
-        auto err_msg = QObject::tr("Fatal: '%1' does not exist").arg(default_theme_file);
+        auto err_msg = tr("Fatal: '%1' does not exist").arg(default_theme_file);
         qCritical() << err_msg;
-        QMessageBox::critical(nullptr, QObject::tr("Aborting"), err_msg);
+        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
         abort();
         }
 
@@ -267,7 +269,7 @@ void cb_find_duplicates::cb_set_stylesheet()
     QFile stylesheet_file(theme_file);
     if (not stylesheet_file.open(QIODevice::ReadOnly | QIODevice::Text)) 
         {
-        qWarning() << QObject::tr("Could not open themefile:") << theme_file;
+        qWarning() << tr("Could not open themefile:") << theme_file;
         return;
         }
 
@@ -329,6 +331,34 @@ void cb_find_duplicates::cb_launch_main_window()
     m_main_window->restoreState(m_user_settings->value("window/state").toByteArray());
 
     m_main_window->show();
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::cb_on_about()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    auto about_filename = m_data_location + "/about/" + tr("about_english.txt");
+    if (!QFile(about_filename).exists())
+        {
+        auto err_msg = tr("Fatal: '%1' does not exist").arg(about_filename);
+        qCritical() << err_msg;
+        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
+        abort();
+        }
+    QFile about_file(about_filename);
+    about_file.open(QIODevice::ReadOnly);
+    auto message = QTextStream(&about_file).readAll();
+
+    message = message.arg(cb_constants::application_name, cb_constants::application_version);
+    auto dialog = make_unique<cb_dialog>(message);
+
+    QIcon window_icon;
+    window_icon.addPixmap(QPixmap(":/cb_find_duplicates/img/cb_find_duplicates_64px.png"));
+    dialog->setWindowIcon(window_icon);
+    dialog->setWindowTitle(tr("About"));
+    dialog->exec();
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

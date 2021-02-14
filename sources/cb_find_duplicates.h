@@ -24,6 +24,7 @@ class cb_find_duplicates : public QApplication
 
         void cb_init(int& argc, char* argv[]);
 
+        void cb_on_about();
         void cb_on_quit();
 
         QString                     m_data_location;
