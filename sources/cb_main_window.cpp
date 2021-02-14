@@ -93,31 +93,27 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
     cb_set_config(config_start);
 
     // Menu connects.
+    
+    auto at = &QAction::triggered;
 
-    connect(action_quit,  &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_quit);
-    connect(action_about, &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_about);
-    connect(action_log,   &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_log);
-
-    // Per language.
-
-    connect(action_dutch,   &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_language);
-    connect(action_english, &QAction::triggered, cb_app, &cb_find_duplicates::cb_on_language);
+    connect(action_quit,    at, cb_app, &cb_find_duplicates::cb_on_quit);
+    connect(action_about,   at, cb_app, &cb_find_duplicates::cb_on_about);
+    connect(action_log,     at, cb_app, &cb_find_duplicates::cb_on_log);
+    connect(action_dutch,   at, cb_app, &cb_find_duplicates::cb_on_language);
+    connect(action_english, at, cb_app, &cb_find_duplicates::cb_on_language);
 
     // Other connects.
+    
+    auto tbc = &QToolButton::clicked;
 
-        /*
-    tb_start_search.clicked.connect(self.the_app.on_start_search)
-    tb_stop_search.clicked.connect(self.the_app.on_stop_search)
-    tb_walk_fail.clicked.connect(self.the_app.on_walk_fail_detail)
-
-    tb_select.clicked.connect(self.the_app.on_select_by_script)
-    tb_reload.clicked.connect(self.the_app.on_update_select_scripts)
-
-    tb_action.clicked.connect(self.the_app.on_action)
-
-    tb_action_success.clicked.connect(self.the_app.on_action_success_detail)
-    tb_action_fail.clicked.connect(self.the_app.on_action_fail_detail)
-*/
+    connect(tb_start_search,   tbc, cb_app, &cb_find_duplicates::cb_on_start_search);
+    connect(tb_stop_search,    tbc, cb_app, &cb_find_duplicates::cb_on_stop_search);
+    connect(tb_walk_fail,      tbc, cb_app, &cb_find_duplicates::cb_on_walk_fail_detail);
+    connect(tb_select,         tbc, cb_app, &cb_find_duplicates::cb_on_select_by_script);
+    connect(tb_reload,         tbc, cb_app, &cb_find_duplicates::cb_on_update_select_scripts);
+    connect(tb_action,         tbc, cb_app, &cb_find_duplicates::cb_on_action);
+    connect(tb_action_success, tbc, cb_app, &cb_find_duplicates::cb_on_action_success_detail);
+    connect(tb_action_fail,    tbc, cb_app, &cb_find_duplicates::cb_on_action_fail_detail);
     };
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

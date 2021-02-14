@@ -28,6 +28,14 @@ class cb_find_duplicates : public QApplication
         void cb_on_log();
         void cb_on_quit();
         void cb_on_language();
+        void cb_on_start_search();
+        void cb_on_stop_search();
+        void cb_on_walk_fail_detail();
+        void cb_on_select_by_script();
+        void cb_on_update_select_scripts();
+        void cb_on_action();
+        void cb_on_action_success_detail();
+        void cb_on_action_fail_detail();
 
         QString                     m_data_location;
         std::unique_ptr <QSettings> m_user_settings;
