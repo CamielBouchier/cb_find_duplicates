@@ -10,11 +10,12 @@
 #include <QApplication>
 #include <QFile>
 #include <QIcon>
- 
-class QSettings;
 
-class cb_filesystem_model;
-class cb_main_window;
+#include "cb_lua_selector.h"
+#include "cb_filesystem_model.h"
+#include "cb_main_window.h"
+#include "cb_result_model.h"
+#include "cb_worker.h"
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -41,15 +42,22 @@ class cb_find_duplicates : public QApplication
         void cb_on_update_select_scripts();
         void cb_on_walk_fail_detail();
 
-        QString                     m_data_location;
-        QFile                       m_failed_logfile;
-        QString                     m_temp_location;
-        std::unique_ptr <QSettings> m_user_settings;
+        QString                           m_data_location;
+        QFile                             m_failed_logfile;
+        QString                           m_temp_location;
+        QString                           m_action_success_filename;
+        QString                           m_action_fail_filename;
+        QString                           m_walk_fail_filename;
+        std::unique_ptr <QSettings>       m_user_settings;
+        std::unique_ptr <cb_lua_selector> m_lua_selector;
+        std::unique_ptr <cb_main_window>  m_main_window;
     private:
 
 
         void cb_install_filesystem_model();
+        void cb_install_result_model();
         void cb_install_to_data_location();
+        void cb_install_worker();
         void cb_launch_main_window();
         void cb_process_args(int& argc, char* argv[]);
         void cb_recursive_copy(const QString& src_dir, const QString& dst_dir);
@@ -58,8 +66,10 @@ class cb_find_duplicates : public QApplication
         void cb_set_temp_location();
         void cb_set_user_settings();
 
-        std::unique_ptr <cb_main_window>      m_main_window;
         std::unique_ptr <cb_filesystem_model> m_filesystem_model;
+        std::unique_ptr <cb_result_model>     m_result_model;
+        std::unique_ptr <QThread>             m_worker_thread;
+        cb_worker*                            m_worker;
         QHash<QString, QString>               m_constants_in_stylesheet;
         QString                               m_language;
     };

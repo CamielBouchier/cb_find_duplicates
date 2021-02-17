@@ -38,6 +38,7 @@ AC_CHECK_LIB([jpeg], [main])
 AC_CHECK_LIB([png], [main])
 AC_CHECK_LIB([tiff], [main])
 AC_CHECK_LIB([expat], [main])
+AC_CHECK_LIB([lua], [main])
 AC_CHECK_LIB([QtCore], [main])
 AC_CHECK_LIB([QtGui], [main])
 # Followings are in fact only in mingw version.
@@ -56,7 +57,7 @@ AC_CHECK_LIB([gomp], [main])
 ################################################################################
 
 AC_PATH_X
-AC_CHECK_HEADERS([fcntl.h float.h libintl.h limits.h locale.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h])
+AC_CHECK_HEADERS([fcntl.h float.h libintl.h limits.h locale.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/time.h unistd.h utime.h lua.hpp])
 
 ################################################################################
 #
@@ -214,6 +215,10 @@ AC_SUBST(CONSOLE)
 # Checks for versions of major dependencies.
 #
 ################################################################################
+
+PKG_CHECK_MODULES([LUA], [lua > 5.3])
+AC_SUBST(LUA_CFLAGS)
+AC_SUBST(LUA_LIBS)
 
 ################################################################################
 #

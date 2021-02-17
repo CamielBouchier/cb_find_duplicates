@@ -9,6 +9,7 @@
 *.exe
 *.log
 *.o
+*.*~
 .qmake.stash
 moc/*
 resources/*

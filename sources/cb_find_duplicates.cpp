@@ -18,12 +18,15 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+#include <cb_abort.h>
 #include <cb_constants.h>
 #include <cb_dialog.h>
 #include <cb_filesystem_model.h>
 #include <cb_find_duplicates.h>
 #include <cb_log.h>
 #include <cb_main_window.h>
+#include <cb_result_model.h>
+#include <cb_worker.h>
 
 using namespace std;
 
@@ -57,6 +60,8 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
     cb_set_stylesheet();
     cb_launch_main_window();
     cb_install_filesystem_model();
+    cb_install_result_model();
+    cb_install_worker();
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
@@ -83,9 +88,7 @@ void cb_find_duplicates::cb_set_data_location()
     if (!QDir().mkpath(m_data_location))
         {
         auto err_msg = tr("Fatal: could not create '%1'").arg(m_data_location);
-        qCritical() << err_msg;
-        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
-        abort();
+        ABORT(err_msg);
         }
 
     qInfo() << "m_data_location:" << m_data_location;
@@ -106,12 +109,14 @@ void cb_find_duplicates::cb_set_temp_location()
     if (!QDir().mkpath(m_temp_location))
         {
         auto err_msg = tr("Fatal: could not create '%1'").arg(m_temp_location);
-        qCritical() << err_msg;
-        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
-        abort();
+        ABORT(err_msg);
         }
 
     qInfo() << "m_temp_location:" << m_temp_location;
+
+    m_action_success_filename = m_temp_location + tr("/action_success.log");
+    m_action_fail_filename    = m_temp_location + tr("/action_fail.log");
+    m_walk_fail_filename      = m_temp_location + tr("/walk_fail.log");
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,16 +126,12 @@ void cb_find_duplicates::cb_recursive_copy(const QString& src_dir, const QString
     if (not QFileInfo(src_dir).isDir())
         {
         auto err_msg = tr("Fatal: '%1' does not exist.").arg(src_dir);
-        qCritical().noquote() << err_msg;
-        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
-        abort();
+        ABORT(err_msg);
         }
      if (!QDir().mkpath(dst_dir))
         {
         auto err_msg = tr("Fatal: could not create '%1'.").arg(dst_dir);
-        qCritical().noquote() << err_msg;
-        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
-        abort();
+        ABORT(err_msg);
         }
     for (auto&& filename : QDir(src_dir).entryList(QDir::Files))
         {
@@ -141,9 +142,7 @@ void cb_find_duplicates::cb_recursive_copy(const QString& src_dir, const QString
         if (!QFile::copy(src_file, dst_file))
             {
             auto err_msg = tr("Fatal: could not copy '%1' => '%2'.").arg(src_file, dst_file);
-            qCritical().noquote() << err_msg;
-            QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
-            abort();
+            ABORT(err_msg);
             }
         }
     for (auto&& dirname : QDir(src_dir).entryList(QDir::Dirs))
@@ -230,23 +229,17 @@ void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
 
     auto exe_name = QFileInfo(argv[0]).fileName();
     auto err_msg  = tr("Usage : %1 " "[-t theme]").arg(exe_name);
+    err_msg += "\n(";
     auto cmd_line = exe_name;
     for (short i=1; i<argc; i++) 
         {
-        cmd_line += QString(" ") + argv[i];
+        err_msg += QString(" ") + argv[i];
         }
-
-    auto local_abort = [&]()
-        {
-        qCritical() << err_msg;
-        qCritical() << cmd_line;
-        QMessageBox::critical(nullptr, tr("Aborting"), err_msg + '\n' + cmd_line);
-        abort();
-        };
+    err_msg += ")";
 
     if (argc % 2 != 1) // argc must be odd
         {
-        local_abort();
+        ABORT(err_msg);
         }
 
     short idx = 1;
@@ -265,7 +258,7 @@ void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
             } 
         else 
             { 
-            local_abort();
+            ABORT(err_msg);
             }
         }
     }
@@ -280,9 +273,7 @@ void cb_find_duplicates::cb_set_stylesheet()
     if (!QFile(default_theme_file).exists())
         {
         auto err_msg = tr("Fatal: '%1' does not exist").arg(default_theme_file);
-        qCritical() << err_msg;
-        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
-        abort();
+        ABORT(err_msg)
         }
 
     auto theme_file = m_data_location + "/themes/" + 
@@ -391,16 +382,63 @@ void cb_find_duplicates::cb_install_filesystem_model()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::cb_install_result_model()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    m_result_model = make_unique<cb_result_model>();
+  
+    m_main_window->tv_result->setModel(m_result_model.get());
+    m_main_window->tv_result->setSortingEnabled(true);
+    m_main_window->tv_result->sortByColumn(cb_result_model::column_dirname,
+                                           Qt::SortOrder::AscendingOrder);
+
+    for (auto column = 0; column < cb_result_model::nr_columns; column++)
+        {
+        int default_width = 0;
+        switch (column) 
+            {
+            case cb_result_model::column_basename : default_width = 180; break;
+            case cb_result_model::column_dirname  : default_width = 400; break;
+            case cb_result_model::column_key      : default_width = 100; break;
+            case cb_result_model::column_size     : default_width = 80;  break;
+            case cb_result_model::column_mtime    : default_width = 180; break;
+            case cb_result_model::column_inode    : default_width = 140; break;
+            default : 
+                auto err_msg = tr("Unforeseen column (%1).").arg(column);
+                ABORT(err_msg);
+            }
+        QString key = QString("window/result_col_width_%1").arg(column);
+        int width = m_user_settings->value(key, default_width).toInt();
+        m_main_window->tv_result->setColumnWidth(column, width);
+        }
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::cb_install_worker()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    m_worker_thread = make_unique<QThread>();
+    // deleteLater will take care of destruction => hence no unique_ptr
+    m_worker = new cb_worker(m_result_model->cb_get_key_dict());  
+    m_worker->moveToThread(m_worker_thread.get());
+
+    connect(m_worker_thread.get(), &QThread::finished, m_worker, &cb_worker::deleteLater);
+
+    m_worker_thread->start();
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 void cb_find_duplicates::cb_on_start_search()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
-    m_failed_logfile.setFileName(m_temp_location + "/failed.log");
-    m_failed_logfile.open(QIODevice::WriteOnly | QIODevice::Text);
-
     m_main_window->cb_set_config(cb_main_window::config_walking);
 
-    // XXX result_model->cb_reset
+    m_result_model->cb_reset();
 
     auto dirs_to_handle = m_filesystem_model->cb_get_selected();
     qInfo() << "dirs_to_handle:" << dirs_to_handle;
@@ -498,9 +536,7 @@ void cb_find_duplicates::cb_on_about()
     if (!QFile(about_filename).exists())
         {
         auto err_msg = tr("Fatal: '%1' does not exist").arg(about_filename);
-        qCritical() << err_msg;
-        QMessageBox::critical(nullptr, tr("Aborting"), err_msg);
-        abort();
+        ABORT(err_msg);
         }
     QFile about_file(about_filename);
     about_file.open(QIODevice::ReadOnly);
@@ -521,6 +557,12 @@ void cb_find_duplicates::cb_on_about()
 void cb_find_duplicates::cb_on_quit()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
+    if (m_worker_thread)
+        {
+        m_worker_thread->terminate();
+        m_worker_thread->wait();
+        }
     exit(EXIT_SUCCESS);
     }
 
@@ -539,6 +581,13 @@ cb_find_duplicates::~cb_find_duplicates()
                               m_main_window->saveGeometry());
     m_user_settings->setValue("window/state",         
                               m_main_window->saveState());
+    
+    for (auto column = 0; column < cb_result_model::nr_columns; column++)
+        {
+        QString key = QString("window/result_col_width_%1").arg(column);
+        m_user_settings->setValue(key, m_main_window->tv_result->columnWidth(column));
+        }
+
     m_user_settings->sync();
     }
 
