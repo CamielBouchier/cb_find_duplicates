@@ -129,7 +129,8 @@ QVariant cb_result_model::headerData(int section, Qt::Orientation orientation, i
         case column_mtime    : return tr("Modification time");
         case column_inode    : return tr("Inode");
         default : 
-            qFatal(qPrintable(QString("Unforeseen column: %1").arg(section)));
+            auto err_msg = tr("Unforeseen column: %1").arg(section);
+            ABORT(err_msg);
         }
     return QVariant();
     } 
@@ -138,7 +139,7 @@ QVariant cb_result_model::headerData(int section, Qt::Orientation orientation, i
 
 void cb_result_model::cb_set_result(bool do_recalculate_times)
     {
-    qInfo() << __PRETTY_FUNCTION__;
+    qInfo() << __PRETTY_FUNCTION__ << do_recalculate_times;
 
     // m_mtime_dict, m_inode_dict are basically caches that
     // need to be calculate first time, but not after a cb_set_result due to sorting or hiding.
@@ -162,29 +163,34 @@ void cb_result_model::cb_set_result(bool do_recalculate_times)
     cb_sort();
 
     int color_index = 0;
+
     m_overhead_bytes = 0;
+    m_total_files    = 0;
+    m_nr_file_groups = 0;
 
     // Start adding them again.
     for (auto&& key : m_ordered_key_list) 
         {
-        // OrderedKeyList is supposed to have the same keys as m_key_dict, but safety check.
-        if (not m_key_dict.contains(key)) 
+        m_nr_file_groups++;
+
+        if (not m_key_dict.contains(key)) // m_ordered_key_list must have same keys as m_key_dict.
             {
             auto err_msg = tr("Internal error. Expected key '%1' not in m_key_dict.").arg(key);
             ABORT(err_msg);
             }
 
         auto size = cb_size_from_key(key);
-        m_overhead_bytes -= size; // Compensating addition of first in group.
-        auto& files = m_key_dict[key];
-        for (auto& file : files)
+        m_overhead_bytes -= size;   // Compensating addition of first in group.
+
+        for (auto&& file : m_key_dict[key])
             {
+            m_total_files++;
             m_overhead_bytes += size;
 
             auto basename_item = new QStandardItem(QFileInfo(file).fileName());
             auto dirname_item  = new QStandardItem(QFileInfo(file).path());
             auto key_item      = new QStandardItem(key);
-            auto size_item     = new QStandardItem(cb_size_string_from_key(key));
+            auto size_item     = new QStandardItem(cb_sizestring_from_key(key));
             auto mtime_item    = new QStandardItem(m_mtime_dict[file].toString());
             auto inode_item    = new QStandardItem(QString::number(m_inode_dict[file]));
 
@@ -204,8 +210,8 @@ void cb_result_model::cb_set_result(bool do_recalculate_times)
                     case column_mtime    : row.append(mtime_item);    break;
                     case column_inode    : row.append(inode_item);    break;
                     default : 
-                        qFatal(qPrintable(QString("Unforeseen column (%1)").arg(column)));
-                        abort();
+                        auto err_msg = tr("Unforeseen column (%1)").arg(column);
+                        ABORT(err_msg);
                     }
                 } 
             row[0]->setCheckable(true);
@@ -288,9 +294,16 @@ bool cb_less_than::operator()(const QString& key1, const QString& key2) const
             QString file2 = m_model->m_key_dict[key2].at(0);
             rv = ( m_model->m_mtime_dict[file1] < m_model->m_mtime_dict[file2] ); 
             }
+        else if (sort_column == cb_result_model::column_inode)
+            {
+            QString file1 = m_model->m_key_dict[key1].at(0);
+            QString file2 = m_model->m_key_dict[key2].at(0);
+            rv = ( m_model->m_inode_dict[file1] < m_model->m_inode_dict[file2] ); 
+            }
         else 
             {
-            qFatal(qPrintable(QString("Unforeseen column (%1)").arg(m_model->m_sort_column)));
+            auto err_msg = QObject::tr("Unforeseen column (%1)").arg(m_model->m_sort_column);
+            ABORT(err_msg);
             }
         }
 

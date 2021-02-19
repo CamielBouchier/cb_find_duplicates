@@ -27,8 +27,6 @@
 
 QString cb_md5_sum(const QString& filename, const bool partial)
     {
-    qInfo() << __PRETTY_FUNCTION__ << filename;
-           
     if (not QFileInfo(filename).isReadable())
         {
         auto error_msg = QString("Could not read '%1'.").arg(filename);
@@ -47,7 +45,6 @@ QString cb_md5_sum(const QString& filename, const bool partial)
         if (partial) break;
         }
     auto md5 = QString(hash.result().toHex());
-    qInfo() << "md5:" << md5;
     return md5;
     }
 
@@ -188,9 +185,7 @@ cb_file_identifier cb_get_file_identifier(const QString& file)
 
 bool cb_is_same_file(const QString& file1, const QString& file2)
     {
-    qInfo() << __PRETTY_FUNCTION__ << file1 << file2;
     auto is_same = (cb_get_file_identifier(file1) == cb_get_file_identifier(file2));
-    qInfo() << "is_same:" << is_same;
     return is_same;
     }
 
@@ -198,8 +193,13 @@ bool cb_is_same_file(const QString& file1, const QString& file2)
 
 bool cb_is_same_file(const QStringList& files)
     {
-    auto ref_identifier = cb_get_file_identifier(files.at(0));
     auto nr_files = files.size();
+    if (nr_files == 0) 
+        {
+        auto err_msg = QObject::tr("nr_files:0");
+        ABORT(err_msg);
+        }
+    auto ref_identifier = cb_get_file_identifier(files.at(0));
     auto is_same = true;
     for (int idx=1; idx<nr_files; idx++)
         {
@@ -209,7 +209,6 @@ bool cb_is_same_file(const QStringList& files)
             break;
             }
         }
-    qInfo() << "is_same:" << is_same;
     return is_same;
     }
 
@@ -288,7 +287,7 @@ bool cb_hardlink(const QString& existing_file, const QString& new_file)
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-QString cb_size_string_from_size(uint64_t size)
+QString cb_sizestring_from_size(uint64_t size)
     {
     if (size > giga)
         {
@@ -317,9 +316,9 @@ uint64_t cb_size_from_key(const QString& key)
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-QString cb_size_string_from_key(const QString& key)
+QString cb_sizestring_from_key(const QString& key)
     {
-    return cb_size_string_from_size(cb_size_from_key(key));
+    return cb_sizestring_from_size(cb_size_from_key(key));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

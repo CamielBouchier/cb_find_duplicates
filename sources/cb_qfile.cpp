@@ -18,7 +18,6 @@ cb_qfile::cb_qfile(const QString& name,
 
     : QFile(name)
     {
-    qInfo() << __PRETTY_FUNCTION__;
     }
 
 //..................................................................................................
@@ -30,8 +29,6 @@ cb_qfile::cb_qfile(const QString& name,
 
     : cb_qfile(name, source_file, source_line)
     {
-    qInfo() << __PRETTY_FUNCTION__;
-
     setParent(parent);
     }
 
@@ -44,8 +41,6 @@ cb_qfile::cb_qfile(const QString&            name,
 
     : cb_qfile(name, source_file, source_line)
     {
-    qInfo() << __PRETTY_FUNCTION__;
-
     if (not open(mode))
         {
         auto error_msg = tr("Could not open '%1' in mode '%2' at '%3:%4'.")
@@ -64,8 +59,6 @@ cb_qfile::cb_qfile(const QString&            name,
 
     : cb_qfile(name, mode, source_file, source_line)
     {
-    qInfo() << __PRETTY_FUNCTION__;
-
     setParent(parent);
     }
 
@@ -73,7 +66,6 @@ cb_qfile::cb_qfile(const QString&            name,
 
 cb_qfile::~cb_qfile()
     {
-    qInfo() << __PRETTY_FUNCTION__;
     }
  
 //..................................................................................................

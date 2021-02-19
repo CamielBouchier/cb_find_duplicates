@@ -11,8 +11,8 @@ const uint64_t kilo = 1024;
 const uint64_t mega = kilo*kilo;
 const uint64_t giga = kilo*mega;
 
-QString  cb_size_string_from_size(uint64_t size);
-QString  cb_size_string_from_key(const QString& key);
+QString  cb_sizestring_from_size(uint64_t size);
+QString  cb_sizestring_from_key(const QString& key);
 uint64_t cb_size_from_key(const QString& key);
 
 uint64_t cb_get_fake_inode(const QString& file);

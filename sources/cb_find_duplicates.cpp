@@ -25,10 +25,13 @@
 #include <cb_find_duplicates.h>
 #include <cb_log.h>
 #include <cb_main_window.h>
+#include <cb_qfile.h>
 #include <cb_result_model.h>
-#include <cb_worker.h>
+#include <cb_support.h>
 
 using namespace std;
+// XXX CB TODO
+#undef _OPENMP
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -61,7 +64,20 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
     cb_launch_main_window();
     cb_install_filesystem_model();
     cb_install_result_model();
-    cb_install_worker();
+
+    // For the cb_do_gui_communication we have 2 timers.
+    // m_ui_elapsed_timer:
+    //    That is used primarly when cb_do_gui_communication is called in for loops etc.
+    //    It limits the number of gui updates.
+    // m_ui_clock_timer:
+    //    Fired every 500ms to force cb_do_gui_communication in case no for loop is calling it.
+
+    m_ui_clock_timer.start(500);
+
+    connect(&m_ui_clock_timer, 
+            &QTimer::timeout, 
+            this, 
+            &cb_find_duplicates::cb_do_gui_communication);
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
@@ -416,25 +432,13 @@ void cb_find_duplicates::cb_install_result_model()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_find_duplicates::cb_install_worker()
-    {
-    qInfo() << __PRETTY_FUNCTION__;
-
-    m_worker_thread = make_unique<QThread>();
-    // deleteLater will take care of destruction => hence no unique_ptr
-    m_worker = new cb_worker(m_result_model->cb_get_key_dict());  
-    m_worker->moveToThread(m_worker_thread.get());
-
-    connect(m_worker_thread.get(), &QThread::finished, m_worker, &cb_worker::deleteLater);
-
-    m_worker_thread->start();
-    }
-
-//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 void cb_find_duplicates::cb_on_start_search()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
+    cb_qfile logfile_fail(m_walk_fail_filename,
+                          QIODevice::WriteOnly | QIODevice::Text,
+                          __FILE__,__LINE__);
 
     m_main_window->cb_set_config(cb_main_window::config_walking);
 
@@ -442,11 +446,295 @@ void cb_find_duplicates::cb_on_start_search()
 
     auto dirs_to_handle = m_filesystem_model->cb_get_selected();
     qInfo() << "dirs_to_handle:" << dirs_to_handle;
-    
 
-    }
+    auto& key_dict = m_result_model->m_key_dict;
+  	key_dict.clear();
+
+    m_ui_elapsed_timer.start();
+
+    auto ui_base_status = tr("Collecting files and their size:");
+  	
+  	m_walk            = true;
+    m_phase           = phase_sizes;
+	m_ui_done_files   = 0;
+	m_ui_nr_failed    = 0;
+  	m_ui_status       = ui_base_status;
+  	m_ui_total_files  = 0;
+    m_ui_start_time   = QDateTime::currentDateTime();
+
+  	for (auto&& dir : dirs_to_handle)
+    	{
+    	if (not cb_do_gui_communication()) break;
+
+        // It is important not to take any soft link or shortcut into account.
+        // First of all, they are not the ones taking space.
+        // Then, removing duplicates would be complex and risky in order not
+        // to be left with dangling links. We just avoid the unnecessary risk.
+
+    	QDirIterator dir_iterator(dir, 
+                                  QDir::Files | QDir::Dirs | QDir::NoSymLinks | QDir::Hidden,
+                                  QDirIterator::Subdirectories);
+
+    	while (dir_iterator.hasNext())
+      		{
+    		if (not cb_do_gui_communication()) break;
+      	
+            auto next = dir_iterator.next();
+      		// Additional check/report on unreadable directories.
+      		if (QFileInfo(next).isDir())
+        		{
+        		if (not QFileInfo(next).isReadable())
+          			{
+          			QTextStream(&logfile_fail) << tr("Not readable directory:")
+							                   << next
+											   << Qt::endl;
+          			m_ui_nr_failed++;
+          			}
+        		continue;
+        		}
+      	
+            auto file = QFileInfo(next).canonicalFilePath();
+            m_ui_status = ui_base_status + " " + file;
+
+      		if (QFileInfo(file).isReadable())
+        		{
+        		auto key = QString::number(QFileInfo(file).size());
+        		if (key_dict.contains(key))
+          			{
+          			key_dict[key].append(file);
+          			}
+        		else
+          			{
+          			key_dict[key] = QStringList(file);
+          			}
+        		}
+      		else
+        		{
+        		QTextStream(&logfile_fail) << tr("Not readable:")
+						                   << file 
+										   << Qt::endl;
+        		m_ui_nr_failed++;
+        		}
+       		m_ui_total_files ++;
+      		}
+    	}
+
+    // m_result_model->cb_log_key_dict();
+
+  	// At this point we have a dictionary key(unique on Size)=>ListOfFiles
+  	// Now doing partial and full MD5 calculations to break the tie
+
+    for (m_phase = phase_partial_md5; m_phase <= phase_full_md5; m_phase=cb_phase(m_phase+1)) 
+    	{
+    	if (not cb_do_gui_communication()) break;
+
+        m_ui_phase_start_time = QDateTime::currentDateTime();
+     	m_ui_done_files = 0;
+
+        QString base_status;
+		if (m_phase == phase_partial_md5)
+			{
+			base_status = tr("Calculating partial MD5 for potential duplicates:"); 
+			}
+		else
+			{
+            base_status = tr("Calculating full MD5 for potential duplicates:") ; 
+			}
+  
+      	// Remove all entries that don't have at least 2 files.
+    	for (auto&& key : key_dict.keys())
+      		{
+    		if (not cb_do_gui_communication()) break;
+      		auto& files = key_dict[key];
+      		auto nr_files = files.size();
+            if (nr_files < 2)
+                {
+        		key_dict.remove(key);
+                m_ui_total_files -= nr_files;
+                }
+      		}
+  
+    	// Start the MD5 calculation
+    	auto old_keys = key_dict.keys();
+    	#ifdef _OPENMP
+      		#pragma omp parallel for default(shared) schedule(dynamic)
+    	#endif
+    	for (int idx = 0; idx < old_keys.size(); idx++)
+      		{
+    		if (not cb_do_gui_communication()) continue;
+      		QString     key;
+      		QStringList files;
+      		int         nr_files;
+        	#pragma omp critical
+        		{
+        		key     = old_keys.at(idx);
+        		files   = key_dict[key];
+        		nr_files = files.size();
+        		if (nr_files < 2) 
+          			{
+          			ABORT(tr("Internal error. nr_files < 2 for key '%1': %2")
+						  .arg(key).arg(nr_files));
+          			}
+        		}
+
+      		// No point in calculating tie if it are all the same files.
+      		if (cb_is_same_file(files)) 
+        		{
+        		continue;
+        		}
+
+      		for (auto&& file : files)
+        		{
+                m_ui_status = ui_base_status + " " + file;
+
+          		auto md5_sum = cb_md5_sum(file, m_phase == phase_partial_md5);
+        		auto new_key = key + "_" + md5_sum;
+          		#pragma omp critical
+         	 		{
+          			key_dict.remove(key);
+          			if (key_dict.contains(new_key))
+            			{
+            			key_dict[new_key].append(file);
+            			}
+          			else
+            			{
+            			key_dict[new_key] = QStringList(file);
+            			}
+           			m_ui_done_files++;
+          			}
+        		}
+      		}
+  		}
+  
+  	// Remove keys that don't have at least 2 files.
+  	m_ui_status = tr("Cleaning unique files.");
+  	for (auto&& key : key_dict.keys())
+    	{
+    	if (not cb_do_gui_communication()) break;
+    	auto& files   = key_dict[key];
+    	auto  nr_files = files.size();
+    	if (nr_files < 2)
+      		{
+      		key_dict.remove(key);
+      		}
+    	}
+
+  	// Done
+    // XXX TODO TOT HIER
+  	if (not m_walk)
+    	{
+    	key_dict.clear();
+    	}
+  	m_ui_status = m_walk ? tr("Done") : tr("Aborted");
+    m_result_model->cb_set_result();
+    m_main_window->cb_set_config(cb_main_window::config_selecting);
+  
+  	m_walk = false;
+  	}
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+bool cb_find_duplicates::cb_do_gui_communication()
+	{
+    if (m_ui_elapsed_timer.elapsed() < cb_constants::ui::poll_time)
+        {
+	    return m_walk;
+        }
+
+    m_main_window->statusbar->showMessage(m_ui_status);
+    m_main_window->lb_walk_fail_value->setText(QString().setNum(m_ui_nr_failed));
+    
+    switch (m_phase)
+        {
+        case phase_sizes:
+
+            m_main_window->lb_done_files->setText("");
+            m_main_window->lb_total_files->setText("");
+            
+            m_main_window->pb_files->setValue(0);
+            m_main_window->pb_files->setVisible(false);
+
+            m_main_window->lb_time->setText("");
+            m_main_window->lb_time_value->setText("");
+
+            m_main_window->lb_overhead->setText("");
+            m_main_window->lb_overhead_value->setText("");
+
+            m_main_window->lb_extra->setText(tr("Number of files found:"));
+            m_main_window->lb_extra_value->setText(QString().number(m_ui_total_files));
+
+            break;
+
+        case phase_partial_md5:
+        case phase_full_md5:
+
+            {
+            m_main_window->lb_done_files->setText(QString().number(m_ui_done_files));
+            m_main_window->lb_slash->setText("/");
+            m_main_window->lb_total_files->setText(QString().number(m_ui_total_files));
+
+            m_main_window->lb_extra->setText(tr("Number of files to process:"));
+            m_main_window->lb_extra_value->setText(QString().number(m_ui_total_files));
+
+            float f_p = (100.0 * m_ui_done_files)/m_ui_total_files;
+            int progress_files = isfinite(f_p) ? int(f_p) : 0;
+
+            m_main_window->pb_files->setValue(progress_files);
+            m_main_window->pb_files->setVisible(true);
+
+            auto running_seconds = m_ui_phase_start_time.secsTo(QDateTime::currentDateTime());
+            float n_s = float(running_seconds) * m_ui_total_files / m_ui_done_files;
+            int needed_seconds = isfinite(n_s) ? int(n_s) : 300;
+            m_ui_end_time = m_ui_phase_start_time.addSecs(needed_seconds);
+
+            m_main_window->lb_time->setText(tr("Expected end time:"));
+            m_main_window->lb_time_value->setText(m_ui_end_time.toString());
+
+            break;
+            }
+
+        case phase_done:
+
+            {
+            m_main_window->lb_done_files->setText("");
+            m_main_window->lb_slash->setText("");
+            m_main_window->lb_total_files->setText("");
+
+            m_main_window->pb_files->setVisible(false);
+
+            m_main_window->lb_time->setText(tr("End time:"));
+            auto seconds_run = m_ui_start_time.secsTo(m_ui_end_time);
+            auto time_run = QTime(0,0).addSecs(seconds_run);
+            m_main_window->lb_time_value->setText(
+                m_ui_end_time.toString() + " (" + time_run.toString() + " " + tr("runtime") + ")" );
+            
+            m_main_window->lb_overhead->setText(tr("Overhead bytes:"));
+            m_main_window->lb_overhead_value->setText(
+                    cb_sizestring_from_size(m_result_model->m_overhead_bytes));
+
+            m_main_window->lb_extra->setText(tr("Nr groups and files:"));
+            m_main_window->lb_extra_value->setText(
+                      QString::number(m_result_model->m_nr_file_groups) 
+                    + " - " 
+                    + QString::number(m_result_model->m_total_files)
+                    );
+
+            break;
+            }
+
+        default:
+
+            auto err_msg = tr("m_phase:").arg(m_phase);
+            ABORT(err_msg);
+        }
+
+    m_ui_elapsed_timer.restart();       // Restart timer for next call.
+    processEvents();                    // Give breathing room to GUI!
+    return m_walk;
+	}
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 void cb_find_duplicates::cb_on_stop_search()
     {
@@ -558,11 +846,7 @@ void cb_find_duplicates::cb_on_quit()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
-    if (m_worker_thread)
-        {
-        m_worker_thread->terminate();
-        m_worker_thread->wait();
-        }
+    m_walk = false;
     exit(EXIT_SUCCESS);
     }
 

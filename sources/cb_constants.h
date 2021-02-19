@@ -25,6 +25,10 @@ namespace cb_constants
         const int     days_to_keep (5);
         const int     max_entries  (20);
         }
+    namespace ui
+        {
+        const int poll_time(300); // ms
+        }
 	}
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
