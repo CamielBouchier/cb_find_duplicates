@@ -602,8 +602,12 @@ void cb_find_duplicates::cb_on_start_search()
     		if (not cb_do_gui_communication()) continue;
 
         	auto key      = old_keys.at(idx);
-        	auto files    = key_dict[key];
-        	auto nr_files = files.size();
+        	auto nr_files = key_dict[key].size();
+            QStringList files;
+            for (auto i = 0; i < nr_files; i++)
+                {
+                files << key_dict[key][i];
+                }
         	if (nr_files < 2) 
           		{
           		auto err_msg = tr("Internal error: nr_files < 2 for key '%1': %2")
@@ -621,21 +625,15 @@ void cb_find_duplicates::cb_on_start_search()
         		}
             */
 
-    	    #ifdef _FOOBAR_OPENMP
-      		    #pragma omp parallel for default(shared) schedule(dynamic)
-    	    #endif
     	    #ifdef _OPENMP
-      		    #pragma omp parallel for default(none) shared(nr_files,files)
+      		    #pragma omp parallel for default(shared) 
     	    #endif
       		for (int file_idx = 0; file_idx < nr_files; file_idx++) // No range based for OMP!
         		{
-                // auto file = files[file_idx];
-                qInfo() << "thread_num:" << omp_get_thread_num() << "file_idx:" << file_idx;
-                qInfo() << "files[0]:" << files[0];
+                auto file = files[file_idx];
                 bool ok;
-          		//auto md5_sum = cb_md5_sum(file, m_phase == phase_partial_md5, ok);
-        		//auto new_key = key + "_" + md5_sum;
-                /*
+          		auto md5_sum = cb_md5_sum(file, m_phase == phase_partial_md5, ok);
+        		auto new_key = key + "_" + md5_sum;
           		#pragma omp critical
          	 		{
                     if (not ok)
@@ -660,13 +658,10 @@ void cb_find_duplicates::cb_on_start_search()
                     m_ui_status = ui_base_status + " " + file;
            			m_ui_done_files++;
           			}
-                */
         		}
       		}
   		}
 
-    qInfo() << "TOT HIER";
-  
   	// Remove keys that don't have at least 2 files.
   	m_ui_status = tr("Cleaning unique files.");
   	for (auto&& key : key_dict.keys())

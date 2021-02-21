@@ -25,6 +25,7 @@ cb_log::log_level cb_log::m_console_log_level = info;
 QFile*  cb_log::m_file(nullptr);
 QString cb_log::m_logdir("");
 QString cb_log::m_logfile_name;
+QMutex  cb_log::m_mutex;
 
 //..................................................................................................
  
@@ -127,6 +128,8 @@ void cb_log::cb_clean_logdir()
  
 void cb_log::cb_handler(QtMsgType msg_type, const QMessageLogContext& context, const QString& msg)
     {    
+    QMutexLocker locker(&m_mutex);
+
     QString str_type;
     switch (msg_type) 
         {

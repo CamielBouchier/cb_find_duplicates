@@ -8,6 +8,7 @@
 #pragma once
  
 #include <QDebug>
+#include <QMutex>
 #include <QObject>
 #include <QThread>
  
@@ -31,6 +32,7 @@ class cb_log : public QObject
 
         static QString m_logfile_name;
 
+
     private:
 	    cb_log(QObject* parent=nullptr);
 	    ~cb_log();
@@ -41,6 +43,7 @@ class cb_log : public QObject
 
         static QString   m_logdir;
 	    static QFile*    m_file;
+        static QMutex    m_mutex;
         static log_level m_console_log_level;
         static log_level m_file_log_level;
     };
