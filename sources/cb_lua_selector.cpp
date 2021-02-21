@@ -49,8 +49,9 @@ void cb_lua_selector::cb_call_script(const QString&      script_name,
                                            QString&      message)
      
     {
-    qInfo() << __PRETTY_FUNCTION__;
-    qInfo() << "script_name:" << script_name;
+    // qInfo() << __PRETTY_FUNCTION__;
+    //         << "script_name:" 
+    //         << script_name;
 
     if ((selected.size() != files.size()) or (selected.size() != times.size()) )
         {
@@ -158,6 +159,13 @@ void cb_lua_selector::cb_get_script_info(const QString& script_name,
                                                bool&    ok,
                                                QString& message)
     {
+    // qInfo() << __PRETTY_FUNCTION__ 
+    //         << script_name
+    //         << title
+    //         << description
+    //         << ok
+    //         << message;
+
     ok = true;
     if (luaL_loadfile(m_L, qPrintable(script_name)) or lua_pcall(m_L, 0, 0, 0))
         {
@@ -165,6 +173,7 @@ void cb_lua_selector::cb_get_script_info(const QString& script_name,
         message = lua_tostring(m_L, -1);
         return;
         }
+
     struct field { const char*    field_name; 
                          bool     is_function;
                          QString& value;};

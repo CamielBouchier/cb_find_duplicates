@@ -18,6 +18,10 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 #include <cb_abort.h>
 #include <cb_constants.h>
 #include <cb_dialog.h>
@@ -25,13 +29,10 @@
 #include <cb_find_duplicates.h>
 #include <cb_log.h>
 #include <cb_main_window.h>
-#include <cb_qfile.h>
 #include <cb_result_model.h>
 #include <cb_support.h>
 
 using namespace std;
-// XXX CB TODO
-#undef _OPENMP
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -64,13 +65,18 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
     cb_launch_main_window();
     cb_install_filesystem_model();
     cb_install_result_model();
+    cb_install_lua_selector();
+    cb_populate_action_box();
+    cb_on_update_select_scripts();
 
-    // For the cb_do_gui_communication we have 2 timers.
-    // m_ui_elapsed_timer:
-    //    That is used primarly when cb_do_gui_communication is called in for loops etc.
-    //    It limits the number of gui updates.
-    // m_ui_clock_timer:
-    //    Fired every 500ms to force cb_do_gui_communication in case no for loop is calling it.
+    /*
+    For the cb_do_gui_communication we have 2 timers.
+    m_ui_elapsed_timer:
+       That is used primarly when cb_do_gui_communication is called in for loops etc.
+       It limits the number of gui updates.
+    m_ui_clock_timer:
+       Fired every 500ms to force cb_do_gui_communication in case no for loop is calling it.
+    */
 
     m_ui_clock_timer.start(500);
 
@@ -81,6 +87,8 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
+
+    m_main_window->show();
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -88,8 +96,10 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
 void cb_find_duplicates::cb_set_user_settings()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
     auto filename = m_data_location + "/" + cb_constants::application_name + ".ini";
     m_user_settings = make_unique <QSettings>(filename, QSettings::IniFormat);
+
     qInfo() << "m_user_settings:" << m_user_settings->fileName();
     }
 
@@ -103,7 +113,7 @@ void cb_find_duplicates::cb_set_data_location()
 
     if (!QDir().mkpath(m_data_location))
         {
-        auto err_msg = tr("Fatal: could not create '%1'").arg(m_data_location);
+        auto err_msg = tr("Fatal: could not create '%1'.").arg(m_data_location);
         ABORT(err_msg);
         }
 
@@ -367,8 +377,6 @@ void cb_find_duplicates::cb_launch_main_window()
 
     m_main_window->restoreGeometry(m_user_settings->value("window/geometry").toByteArray());
     m_main_window->restoreState(m_user_settings->value("window/state").toByteArray());
-
-    m_main_window->show();
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -432,13 +440,46 @@ void cb_find_duplicates::cb_install_result_model()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::cb_install_lua_selector()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    m_lua_selector = make_unique<cb_lua_selector>();
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::cb_populate_action_box()
+    {  
+    qInfo() << __PRETTY_FUNCTION__;
+
+    m_main_window->cb_actions->addItem(tr("Delete selected"), cb_result_model::action_delete);
+    m_main_window->cb_actions->addItem(tr("Link selected"),   cb_result_model::action_link);
+
+    auto idx = m_user_settings->value("action/action_idx", 0).toInt();
+    m_main_window->cb_actions->setCurrentIndex(idx);
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+// This is where all the action starts.
+// We are basically building a dict[filesize]=[file1, file2, ..]
+// Then cleaning on minimum 2 files, which represent potential equal files.
+// To untie further, the key is recalculated  to filesize_partial_md5.
+// Finally cleaning again on minimum 2 and extend the key to filesize_full_md5.
+// When then a dict entry still has more than 2 entries, the files are considered equal.
+// (md5 ànd filesize collision is extremely unlikely)
+
 void cb_find_duplicates::cb_on_start_search()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
-    cb_qfile logfile_fail(m_walk_fail_filename,
-                          QIODevice::WriteOnly | QIODevice::Text,
-                          __FILE__,__LINE__);
+    QFile logfile_fail(m_walk_fail_filename);
+    if (not logfile_fail.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+        auto err_msg = tr("Could not open: '%1'").arg(m_walk_fail_filename);
+        ABORT(err_msg);
+        }
 
     m_main_window->cb_set_config(cb_main_window::config_walking);
 
@@ -479,26 +520,26 @@ void cb_find_duplicates::cb_on_start_search()
       		{
     		if (not cb_do_gui_communication()) break;
       	
-            auto next = dir_iterator.next();
-      		// Additional check/report on unreadable directories.
-      		if (QFileInfo(next).isDir())
+            auto qfi_next = QFileInfo(dir_iterator.next());
+
+      		if (qfi_next.isDir())    // Additional check/report on unreadable directories.
         		{
-        		if (not QFileInfo(next).isReadable())
+        		if (not qfi_next.isReadable())
           			{
           			QTextStream(&logfile_fail) << tr("Not readable directory:")
-							                   << next
+							                   << qfi_next.canonicalFilePath()
 											   << Qt::endl;
           			m_ui_nr_failed++;
           			}
         		continue;
         		}
       	
-            auto file = QFileInfo(next).canonicalFilePath();
+            auto file = qfi_next.canonicalFilePath();
             m_ui_status = ui_base_status + " " + file;
 
-      		if (QFileInfo(file).isReadable())
+      		if (qfi_next.isReadable())
         		{
-        		auto key = QString::number(QFileInfo(file).size());
+        		auto key = QString::number(qfi_next.size());
         		if (key_dict.contains(key))
           			{
           			key_dict[key].append(file);
@@ -531,20 +572,20 @@ void cb_find_duplicates::cb_on_start_search()
         m_ui_phase_start_time = QDateTime::currentDateTime();
      	m_ui_done_files = 0;
 
-        QString base_status;
 		if (m_phase == phase_partial_md5)
 			{
-			base_status = tr("Calculating partial MD5 for potential duplicates:"); 
+			ui_base_status = tr("Calculating partial MD5 for potential duplicates:"); 
 			}
 		else
 			{
-            base_status = tr("Calculating full MD5 for potential duplicates:") ; 
+            ui_base_status = tr("Calculating full MD5 for potential duplicates:") ; 
 			}
   
       	// Remove all entries that don't have at least 2 files.
     	for (auto&& key : key_dict.keys())
       		{
     		if (not cb_do_gui_communication()) break;
+
       		auto& files = key_dict[key];
       		auto nr_files = files.size();
             if (nr_files < 2)
@@ -555,63 +596,84 @@ void cb_find_duplicates::cb_on_start_search()
       		}
   
     	// Start the MD5 calculation
-    	auto old_keys = key_dict.keys();
-    	#ifdef _OPENMP
-      		#pragma omp parallel for default(shared) schedule(dynamic)
-    	#endif
+    	auto old_keys = key_dict.keys();    // Copy needed: removing keys from key_dict in loop.
     	for (int idx = 0; idx < old_keys.size(); idx++)
       		{
     		if (not cb_do_gui_communication()) continue;
-      		QString     key;
-      		QStringList files;
-      		int         nr_files;
-        	#pragma omp critical
-        		{
-        		key     = old_keys.at(idx);
-        		files   = key_dict[key];
-        		nr_files = files.size();
-        		if (nr_files < 2) 
-          			{
-          			ABORT(tr("Internal error. nr_files < 2 for key '%1': %2")
-						  .arg(key).arg(nr_files));
-          			}
-        		}
 
+        	auto key      = old_keys.at(idx);
+        	auto files    = key_dict[key];
+        	auto nr_files = files.size();
+        	if (nr_files < 2) 
+          		{
+          		auto err_msg = tr("Internal error: nr_files < 2 for key '%1': %2")
+					           .arg(key).arg(nr_files);
+                ABORT(err_msg);
+          		}
+
+            /* XXX CB TODO FOOBAR
       		// No point in calculating tie if it are all the same files.
+            // Note: CB checked if this does not rather take away from the performance in
+            // case there are only few same files. It doesn't, so it's fine to have always.
       		if (cb_is_same_file(files)) 
         		{
         		continue;
         		}
+            */
 
-      		for (auto&& file : files)
+    	    #ifdef _FOOBAR_OPENMP
+      		    #pragma omp parallel for default(shared) schedule(dynamic)
+    	    #endif
+    	    #ifdef _OPENMP
+      		    #pragma omp parallel for default(none) shared(nr_files,files)
+    	    #endif
+      		for (int file_idx = 0; file_idx < nr_files; file_idx++) // No range based for OMP!
         		{
-                m_ui_status = ui_base_status + " " + file;
-
-          		auto md5_sum = cb_md5_sum(file, m_phase == phase_partial_md5);
-        		auto new_key = key + "_" + md5_sum;
+                // auto file = files[file_idx];
+                qInfo() << "thread_num:" << omp_get_thread_num() << "file_idx:" << file_idx;
+                qInfo() << "files[0]:" << files[0];
+                bool ok;
+          		//auto md5_sum = cb_md5_sum(file, m_phase == phase_partial_md5, ok);
+        		//auto new_key = key + "_" + md5_sum;
+                /*
           		#pragma omp critical
          	 		{
-          			key_dict.remove(key);
-          			if (key_dict.contains(new_key))
-            			{
-            			key_dict[new_key].append(file);
-            			}
-          			else
-            			{
-            			key_dict[new_key] = QStringList(file);
-            			}
+                    if (not ok)
+                        {
+        		        QTextStream(&logfile_fail) << tr("cb_md5_sum fail:")
+					  	                           << file 
+							    			       << Qt::endl;
+        		        m_ui_nr_failed++;
+                        }
+                    else
+                        {
+          			    key_dict.remove(key);
+          			    if (key_dict.contains(new_key))
+            			    {
+            			    key_dict[new_key].append(file);
+            			    }
+          			    else
+            			    {
+            			    key_dict[new_key] = QStringList(file);
+            			    }
+                        }
+                    m_ui_status = ui_base_status + " " + file;
            			m_ui_done_files++;
           			}
+                */
         		}
       		}
   		}
+
+    qInfo() << "TOT HIER";
   
   	// Remove keys that don't have at least 2 files.
   	m_ui_status = tr("Cleaning unique files.");
   	for (auto&& key : key_dict.keys())
     	{
     	if (not cb_do_gui_communication()) break;
-    	auto& files   = key_dict[key];
+
+    	auto& files    = key_dict[key];
     	auto  nr_files = files.size();
     	if (nr_files < 2)
       		{
@@ -620,15 +682,13 @@ void cb_find_duplicates::cb_on_start_search()
     	}
 
   	// Done
-    // XXX TODO TOT HIER
   	if (not m_walk)
     	{
-    	key_dict.clear();
+    	key_dict.clear();   // Don't report any result when interrupted (not m_walk).
     	}
   	m_ui_status = m_walk ? tr("Done") : tr("Aborted");
-    m_result_model->cb_set_result();
-    m_main_window->cb_set_config(cb_main_window::config_selecting);
-  
+    m_result_model->cb_set_result();                                // Update result.
+    m_main_window->cb_set_config(cb_main_window::config_selecting); // Update gui configuration.
   	m_walk = false;
   	}
 
@@ -735,10 +795,69 @@ bool cb_find_duplicates::cb_do_gui_communication()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+void cb_find_duplicates::cb_on_update_select_scripts()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+    
+    const auto scripts_dir   = m_data_location + "/lua_scripts";
+    const auto scripts_def   = scripts_dir + "/cb_select_manual.lua";
+    const auto select_script = m_user_settings->value("action/select_script", scripts_def)
+                               .toString();
+
+    m_main_window->cb_scripts->clear();
+
+    QDirIterator dir_iterator(scripts_dir,
+                              QDir::Files | QDir::Readable,
+                              QDirIterator::NoIteratorFlags);
+    int script_index=0;
+
+    while (dir_iterator.hasNext())
+        {
+        auto file = dir_iterator.next();
+        if (not file.endsWith(".lua"))
+            {
+            continue;
+            }
+
+        QString title;
+        QString description;
+        QString message;
+        bool    ok;
+
+        m_lua_selector->cb_get_script_info(file, title, description, ok, message);
+        if (not ok)
+            {
+            QMessageBox::warning(m_main_window.get(),
+                                 tr("Script not useable"),
+                                 tr("Script not useable (skipping)\n"
+                                    "An error was found.\n"
+                                    "Script: '%1'\n"
+                                    "Error: %2"
+                                    ).arg(file).arg(message));
+            continue;
+            }
+
+        m_main_window->cb_scripts->addItem(tr(qPrintable(title)), file);
+        m_main_window->cb_scripts->setItemData(script_index,
+                                               tr(qPrintable(description)),
+                                               Qt::ToolTipRole);
+        if (file == select_script)
+            {
+            m_main_window->cb_scripts->setCurrentIndex(script_index);
+            }
+        script_index++;
+        }
+    m_main_window->cb_scripts->model()->sort(0, Qt::AscendingOrder);
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 void cb_find_duplicates::cb_on_stop_search()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
+    m_main_window->cb_set_config(cb_main_window::config_selecting);
+    m_walk = false;
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -746,13 +865,10 @@ void cb_find_duplicates::cb_on_stop_search()
 void cb_find_duplicates::cb_on_select_by_script()
     {
     qInfo() << __PRETTY_FUNCTION__;
-    }
 
-//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-void cb_find_duplicates::cb_on_update_select_scripts()
-    {
-    qInfo() << __PRETTY_FUNCTION__;
+    auto cb = m_main_window->cb_scripts;
+    auto script = cb->itemData(cb->currentIndex()).toString();
+    m_result_model->cb_select_by_script(script);
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -767,7 +883,7 @@ void cb_find_duplicates::cb_on_action()
 void cb_find_duplicates::cb_on_walk_fail_detail()
     {
     qInfo() << __PRETTY_FUNCTION__;
-    QDesktopServices::openUrl(QUrl("file:///" + m_failed_logfile.fileName(), QUrl::TolerantMode));
+    QDesktopServices::openUrl(QUrl("file:///" + m_walk_fail_filename, QUrl::TolerantMode));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -856,6 +972,13 @@ cb_find_duplicates::~cb_find_duplicates()
     {
     qInfo() << __PRETTY_FUNCTION__;
     qInfo() << "Exiting:" << applicationName() << applicationVersion();
+
+    m_user_settings->setValue("action/action_idx", 
+                              m_main_window->cb_actions->currentIndex());
+
+    auto script = m_main_window->cb_scripts->itemData(m_main_window->cb_scripts->currentIndex());
+    m_user_settings->setValue("action/selectscript",
+                              script);
 
     m_user_settings->setValue("window/dir_selector_col0_width", 
                               m_main_window->tv_dir_selector->columnWidth(0));

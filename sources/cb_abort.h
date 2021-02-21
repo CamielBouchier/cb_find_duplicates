@@ -7,14 +7,18 @@
 
 #pragma once
 
+#include <QDesktopServices>
 #include <QMessageBox>
 #include <QtCore>
 
-#define ABORT(msg)                                                  \
-    {                                                               \
-    qCritical() << (msg) << Qt::endl;                               \
-    QMessageBox::critical(nullptr, QObject::tr("Aborting"), (msg)); \
-    abort();                                                        \
+#include "cb_log.h"
+
+#define ABORT(msg)                                                                  \
+    {                                                                               \
+    qCritical() << (msg) << Qt::endl;                                               \
+    QMessageBox::critical(nullptr, QObject::tr("Aborting"), (msg));                 \
+    QDesktopServices::openUrl(QUrl(cb_log::m_logfile_name, QUrl::TolerantMode));    \
+    abort();                                                                        \
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

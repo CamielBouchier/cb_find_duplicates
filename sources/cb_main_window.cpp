@@ -82,12 +82,6 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
 
     gb_result->setTitle(tr("Results"));
 
-    // Sorting for the cb_scripts
-
-    auto scripts_sort_proxy = new QSortFilterProxyModel(this);
-    scripts_sort_proxy->setSourceModel(cb_scripts->model());
-    cb_scripts->setModel(scripts_sort_proxy);
-
     // Start configuration
 
     cb_set_config(config_start);

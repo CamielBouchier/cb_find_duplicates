@@ -11,7 +11,6 @@
 #include <QStringList>
 
 #include "cb_abort.h"
-#include "cb_qfile.h"
 #include "cb_support.h"
 
 #if defined(Q_OS_WIN)
@@ -25,17 +24,27 @@
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-QString cb_md5_sum(const QString& filename, const bool partial)
+QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
     {
     if (not QFileInfo(filename).isReadable())
         {
         auto error_msg = QString("Could not read '%1'.").arg(filename);
-        ABORT(error_msg);
+        qWarning() << error_msg;
+        ok = false;
+        return QString();
         }
   
-    cb_qfile file(filename, QIODevice::ReadOnly, __FILE__, __LINE__);
+    QFile file(filename);
+    if (not file.open(QIODevice::ReadOnly))
+        {
+        auto error_msg = QString("Could not open '%1'.").arg(filename);
+        qWarning() << error_msg;
+        ok = false;
+        return QString();
+        }
+
     auto file_size = file.size();
-    auto target_chunk_size = partial ? 5 * 1024 * 1024 : 128 * 1024 * 1024;
+    auto target_chunk_size = partial ? 4 * 1024 * 1024 : 128 * 1024 * 1024;
     auto chunk_size = (file_size < target_chunk_size) ? file_size : target_chunk_size;
     QCryptographicHash hash(QCryptographicHash::Md5);
     while (not file.atEnd())
@@ -45,6 +54,7 @@ QString cb_md5_sum(const QString& filename, const bool partial)
         if (partial) break;
         }
     auto md5 = QString(hash.result().toHex());
+    ok = true;
     return md5;
     }
 
@@ -143,7 +153,7 @@ cb_file_identifier cb_get_file_identifier(const QString& file)
 
         BY_HANDLE_FILE_INFORMATION lpFileInformation;
         HANDLE fileHandle;
-        fileHandle = CreateFileA(qPrintable(file),
+        fileHandle = CreateFileW(file.toStdWString().c_str(),
                                  FILE_READ_ATTRIBUTES, 
                                  FILE_SHARE_READ,
                                  NULL,
@@ -156,6 +166,13 @@ cb_file_identifier cb_get_file_identifier(const QString& file)
         identifier.dwVolumeSerialNumber = lpFileInformation.dwVolumeSerialNumber;
         identifier.nFileIndexHigh       = lpFileInformation.nFileIndexHigh;
         identifier.nFileIndexLow        = lpFileInformation.nFileIndexLow; 
+
+        if (not success)
+            {
+            identifier.dwVolumeSerialNumber = 0;
+            identifier.nFileIndexHigh       = 0;
+            identifier.nFileIndexLow        = 0;
+            }
 
     #elif defined(Q_OS_LINUX)
 
@@ -175,7 +192,7 @@ cb_file_identifier cb_get_file_identifier(const QString& file)
                        .arg(__PRETTY_FUNCTION__)
                        .arg(file).
                        arg(strerror(errno));
-        ABORT(err_msg);
+        qWarning() << err_msg;
         }
     
     return identifier;
@@ -243,8 +260,8 @@ bool cb_hardlink(const QString& existing_file, const QString& new_file)
     {
     #if defined(Q_OS_WIN)
 
-        bool success = (0 != CreateHardLinkA(qPrintable(new_file),
-                                             qPrintable(existing_file),
+        bool success = (0 != CreateHardLinkW(new_file.toStdWString().c_str(),
+                                             existing_file.toStdWString().c_str(),
                                              NULL));
         if (not success)
             {

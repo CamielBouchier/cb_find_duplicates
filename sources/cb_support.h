@@ -21,7 +21,7 @@ bool cb_hardlink(const QString& existing_file, const QString& new_file);
 bool cb_is_same_file(const QString& file1, const QString& file2);
 bool cb_is_same_file(const QStringList& files);
 
-QString cb_md5_sum(const QString& file, const bool partial);
+QString cb_md5_sum(const QString& file, const bool partial, bool& ok);
 
 QString cb_represent(const QStringList& string_list);
 

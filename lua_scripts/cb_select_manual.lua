@@ -5,18 +5,18 @@
 --
 -------------------------------------------------------------------------------
 
-Title       = "Manual"
-Description = "Select manually"
+title       = "Manual"
+description = "Select manually"
 
-function Select(Files,Times,Size)
-  -- Files : table of filenames.
-  -- Times : corresponding table of modification times. 
-  -- Size  : filesize.
-  local Selected = {}
-  for i=1,#Files do
-    Selected[i] = false
+function select(files, times, size)
+  -- files : table of filenames.
+  -- times : corresponding table of modification times. 
+  -- size  : filesize.
+  local selected = {}
+  for i=1, #files do
+    selected[i] = false
   end
-  return Selected
+  return selected
 end
 
 -------------------------------------------------------------------------------

@@ -59,9 +59,11 @@ class cb_find_duplicates : public QApplication
         enum cb_phase {phase_sizes, phase_partial_md5, phase_full_md5, phase_done};
 
         void cb_install_filesystem_model();
+        void cb_install_lua_selector();
         void cb_install_result_model();
         void cb_install_to_data_location();
         void cb_launch_main_window();
+        void cb_populate_action_box();
         void cb_process_args(int& argc, char* argv[]);
         void cb_recursive_copy(const QString& src_dir, const QString& dst_dir);
         void cb_set_data_location();

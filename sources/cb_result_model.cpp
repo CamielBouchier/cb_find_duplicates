@@ -11,7 +11,6 @@
 
 #include "cb_abort.h"
 #include "cb_find_duplicates.h"
-#include "cb_qfile.h"
 #include "cb_result_model.h"
 #include "cb_support.h"
 
@@ -378,13 +377,19 @@ void cb_result_model::cb_do_action(const int action)
     {
     qInfo() << __PRETTY_FUNCTION__;
 
-    cb_qfile logfile_success(cb_app->m_action_success_filename,
-                             QIODevice::WriteOnly | QIODevice::Text,
-                             __FILE__,__LINE__);
+    QFile logfile_success(cb_app->m_action_success_filename);
+    if (not logfile_success.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+        auto err_msg = tr("Could not open: '%1'.").arg(cb_app->m_action_success_filename);
+        ABORT(err_msg);
+        }
                                      
-    cb_qfile logfile_fail(cb_app->m_action_fail_filename,
-                          QIODevice::WriteOnly | QIODevice::Text,
-                          __FILE__,__LINE__);
+    QFile logfile_fail(cb_app->m_action_fail_filename);
+    if (not logfile_fail.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+        auto err_msg = tr("Could not open: '%1'.").arg(cb_app->m_action_fail_filename);
+        ABORT(err_msg);
+        }
                                      
     m_action_success_count = 0;
     m_action_fail_count    = 0;
