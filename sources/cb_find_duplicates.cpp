@@ -18,10 +18,6 @@
 #include <QSettings>
 #include <QStandardPaths>
 
-#ifdef _OPENMP
-    #include <omp.h>
-#endif
-
 #include <cb_abort.h>
 #include <cb_constants.h>
 #include <cb_dialog.h>
@@ -599,15 +595,12 @@ void cb_find_duplicates::cb_on_start_search()
     	auto old_keys = key_dict.keys();    // Copy needed: removing keys from key_dict in loop.
     	for (int idx = 0; idx < old_keys.size(); idx++)
       		{
-    		if (not cb_do_gui_communication()) continue;
+  		    if (not cb_do_gui_communication()) continue;
 
-        	auto key      = old_keys.at(idx);
-        	auto nr_files = key_dict[key].size();
-            QStringList files;
-            for (auto i = 0; i < nr_files; i++)
-                {
-                files << key_dict[key][i];
-                }
+        	const auto key      = old_keys.at(idx);
+        	const auto nr_files = key_dict[key].size();
+            const auto files    = key_dict[key];    // CB: See wiki [[const QStringList - OMP]]
+
         	if (nr_files < 2) 
           		{
           		auto err_msg = tr("Internal error: nr_files < 2 for key '%1': %2")
@@ -615,7 +608,6 @@ void cb_find_duplicates::cb_on_start_search()
                 ABORT(err_msg);
           		}
 
-            /* XXX CB TODO FOOBAR
       		// No point in calculating tie if it are all the same files.
             // Note: CB checked if this does not rather take away from the performance in
             // case there are only few same files. It doesn't, so it's fine to have always.
@@ -623,14 +615,13 @@ void cb_find_duplicates::cb_on_start_search()
         		{
         		continue;
         		}
-            */
 
     	    #ifdef _OPENMP
+                // On my machine, and on my testcase improves from 100 minutes to 80 minutes.
       		    #pragma omp parallel for default(shared) 
     	    #endif
-      		for (int file_idx = 0; file_idx < nr_files; file_idx++) // No range based for OMP!
+            for (auto&& file : files)
         		{
-                auto file = files[file_idx];
                 bool ok;
           		auto md5_sum = cb_md5_sum(file, m_phase == phase_partial_md5, ok);
         		auto new_key = key + "_" + md5_sum;
@@ -695,7 +686,7 @@ bool cb_find_duplicates::cb_do_gui_communication()
         {
 	    return m_walk;
         }
-
+    
     m_main_window->statusbar->showMessage(m_ui_status);
     m_main_window->lb_walk_fail_value->setText(QString().setNum(m_ui_nr_failed));
     
