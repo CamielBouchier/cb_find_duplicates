@@ -32,6 +32,7 @@ void cb_result_model::cb_reset()
     m_key_dict.clear();
     m_ordered_key_list.clear();
     m_mtime_dict.clear();
+    m_ctime_dict.clear();
     m_inode_dict.clear();
     m_check_states.clear();
     m_overhead_bytes = 0;
@@ -126,6 +127,7 @@ QVariant cb_result_model::headerData(int section, Qt::Orientation orientation, i
         case column_key      : return tr("Key");
         case column_size     : return tr("Size");
         case column_mtime    : return tr("Modification time");
+        case column_ctime    : return tr("Creation time");
         case column_inode    : return tr("Inode");
         default : 
             auto err_msg = tr("Unforeseen column: %1").arg(section);
@@ -145,12 +147,14 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
     if (do_recalculate_times_and_inodes) 
         {
         m_mtime_dict.clear();
+        m_ctime_dict.clear();
         m_inode_dict.clear();
         for (const auto& key : m_key_dict.keys()) 
             {
             for (const auto& file: m_key_dict[key])
                 {
                 m_mtime_dict[file] = QFileInfo(file).lastModified();
+                m_ctime_dict[file] = QFileInfo(file).birthTime();
                 m_inode_dict[file] = cb_get_fake_inode(file);
                 }
             }
@@ -190,6 +194,7 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
             auto key_item      = new QStandardItem(key);
             auto size_item     = new QStandardItem(cb_sizestring_from_key(key));
             auto mtime_item    = new QStandardItem(m_mtime_dict[file].toString());
+            auto ctime_item    = new QStandardItem(m_ctime_dict[file].toString());
             auto inode_item    = new QStandardItem(QString::number(m_inode_dict[file]));
 
             basename_item->setData(key,         Qt::UserRole+1);
@@ -206,6 +211,7 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
                     case column_key      : row.append(key_item);      break;
                     case column_size     : row.append(size_item);     break;
                     case column_mtime    : row.append(mtime_item);    break;
+                    case column_ctime    : row.append(ctime_item);    break;
                     case column_inode    : row.append(inode_item);    break;
                     default : 
                         auto err_msg = tr("Unforeseen column (%1)").arg(column);
@@ -255,6 +261,10 @@ bool cb_less_than::operator()(const QString& key1, const QString& key2) const
             {
             rv = ( m_model->m_mtime_dict[key1] < m_model->m_mtime_dict[key2] ); 
             }
+        else if (sort_column == cb_result_model::column_ctime)
+            {
+            rv = ( m_model->m_ctime_dict[key1] < m_model->m_ctime_dict[key2] ); 
+            }
         else if (sort_column == cb_result_model::column_inode)
             {
             rv = ( m_model->m_inode_dict[key1] < m_model->m_inode_dict[key2] ); 
@@ -291,6 +301,12 @@ bool cb_less_than::operator()(const QString& key1, const QString& key2) const
             QString file1 = m_model->m_key_dict[key1].at(0);
             QString file2 = m_model->m_key_dict[key2].at(0);
             rv = ( m_model->m_mtime_dict[file1] < m_model->m_mtime_dict[file2] ); 
+            }
+        else if (sort_column == cb_result_model::column_ctime)
+            {
+            QString file1 = m_model->m_key_dict[key1].at(0);
+            QString file2 = m_model->m_key_dict[key2].at(0);
+            rv = ( m_model->m_ctime_dict[file1] < m_model->m_ctime_dict[file2] ); 
             }
         else if (sort_column == cb_result_model::column_inode)
             {
@@ -336,19 +352,25 @@ void cb_result_model::cb_select_by_script(const QString &script_name)
     for (const auto& key : m_key_dict.keys())
         {
         const auto& files = m_key_dict[key];
+        QList <uint32_t> mtimes;
+        QList <uint32_t> ctimes;
+        QList <uint64_t> inodes;
         QList <bool> selected;
-        QList <uint> times;
         for (int i = 0; i < files.size(); i++)
             {
             selected.append(false);
-            times.append(m_mtime_dict[files.at(i)].toTime_t());
+            mtimes.append(m_mtime_dict[files.at(i)].toTime_t());
+            ctimes.append(m_ctime_dict[files.at(i)].toTime_t());
+            inodes.append(m_inode_dict[files.at(i)]);
             }
 
         QString message;
         bool ok;
         cb_app->m_lua_selector->cb_call_script(script_name, 
                                                files, 
-                                               times, 
+                                               mtimes, 
+                                               ctimes, 
+                                               inodes, 
                                                cb_size_from_key(key), 
                                                selected, 
                                                ok, 

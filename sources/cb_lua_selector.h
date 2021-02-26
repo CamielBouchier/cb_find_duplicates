@@ -21,13 +21,15 @@ class cb_lua_selector : public QObject
       cb_lua_selector();
       ~cb_lua_selector();
 
-      void cb_call_script(const QString&      script_name, 
-                          const QStringList&  files,
-                          const QList<uint>&  times,
-                          const int&          size, 
-                                QList<bool>&  selected,
-                                bool&         ok,
-                                QString&      message);
+      void cb_call_script(const QString&         script_name, 
+                          const QStringList&     files,
+                          const QList<uint32_t>& mtimes,
+                          const QList<uint32_t>& ctimes,
+                          const QList<uint64_t>& inodes,
+                          const int&             size, 
+                                QList<bool>&     selected,
+                                bool&            ok,
+                                QString&         message);
 
       void cb_get_script_info(const QString& script_name, 
                                     QString& title,

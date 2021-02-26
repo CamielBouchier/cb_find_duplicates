@@ -8,9 +8,11 @@
 title       = "Contains 'Copy'"
 description = "Select those containing 'Copy' in path"
 
-function select(files, times, size)
+function select(files, mtimes, ctimes, inodes, size)
   -- files : table of filenames.
-  -- times : corresponding table of modification times. 
+  -- mtimes : corresponding table of modification times. 
+  -- ctimes : corresponding table of creation times. 
+  -- inodes : corresponding table of (fake) inodes. 
   -- size  : filesize.
   local selected = {}
   for i=1, #files do

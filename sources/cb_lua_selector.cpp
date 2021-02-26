@@ -40,24 +40,31 @@ cb_lua_selector::cb_lua_selector()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_lua_selector::cb_call_script(const QString&      script_name, 
-                                     const QStringList  &files,
-                                     const QList <uint> &times,
-                                     const int&          size,
-                                           QList <bool> &selected,
-                                           bool&         ok,
-                                           QString&      message)
+void cb_lua_selector::cb_call_script(const QString&         script_name, 
+                                     const QStringList&     files,
+                                     const QList<uint32_t>& mtimes,
+                                     const QList<uint32_t>& ctimes,
+                                     const QList<uint64_t>& inodes,
+                                     const int&             size,
+                                           QList <bool>&    selected,
+                                           bool&            ok,
+                                           QString&         message)
      
     {
     // qInfo() << __PRETTY_FUNCTION__;
     //         << "script_name:" 
     //         << script_name;
 
-    if ((selected.size() != files.size()) or (selected.size() != times.size()) )
+    if ((selected.size() != files.size())  or 
+        (selected.size() != mtimes.size()) or
+        (selected.size() != ctimes.size()) or
+        (selected.size() != inodes.size()) )
         {
-        auto err_msg = tr("Inconsistent sizes.\nfiles : %1\ntimes : %2\nselected : %3")
+        auto err_msg = tr("Inconsistent sizes: %1, %2, %3, %4, %5")
                        .arg(files.size())
-                       .arg(times.size())
+                       .arg(mtimes.size())
+                       .arg(ctimes.size())
+                       .arg(inodes.size())
                        .arg(selected.size());
         ABORT(err_msg);
         }
@@ -72,8 +79,8 @@ void cb_lua_selector::cb_call_script(const QString&      script_name,
 
     lua_getglobal(m_L, "select");
 
-    // 2 first table arguments : files,times
-    for (int arg=0; arg<2; arg++)
+    // 4 first table arguments : files,mtimes,ctimes,inodes
+    for (int arg=0; arg<4; arg++)
         {
         lua_createtable(m_L, files.size(), 0);
         for (int key=0; key<files.size(); key++)
@@ -85,7 +92,13 @@ void cb_lua_selector::cb_call_script(const QString&      script_name,
                     lua_pushstring(m_L, qPrintable(files.at(key)));
                     break;
                 case 1 : 
-                    lua_pushinteger(m_L, times.at(key));
+                    lua_pushinteger(m_L, mtimes.at(key));
+                    break;
+                case 2 : 
+                    lua_pushinteger(m_L, ctimes.at(key));
+                    break;
+                case 3 : 
+                    lua_pushinteger(m_L, inodes.at(key));
                     break;
                 }
             lua_settable(m_L, -3);
@@ -95,7 +108,7 @@ void cb_lua_selector::cb_call_script(const QString&      script_name,
     lua_pushinteger(m_L, size);
 
     ok = true;
-    if (lua_pcall(m_L, 3, LUA_MULTRET, 0))
+    if (lua_pcall(m_L, 5, LUA_MULTRET, 0))
         {
         ok = false;
         message = lua_tostring(m_L, -1);
@@ -134,7 +147,7 @@ void cb_lua_selector::cb_call_script(const QString&      script_name,
         }
 
     // Did the script not select all values ?
-    if (-1 == selected.indexOf("false"))
+    if (-1 == selected.indexOf(false))
         {
         ok = false;
         message = tr("Script did select all values. At least one should be not selected.");

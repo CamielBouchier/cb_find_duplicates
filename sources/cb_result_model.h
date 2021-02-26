@@ -22,6 +22,7 @@ class cb_result_model : public QStandardItemModel
                      column_key, 
                      column_size, 
                      column_mtime, 
+                     column_ctime, 
                      column_inode,
 					 nr_columns};
 
@@ -68,6 +69,7 @@ class cb_result_model : public QStandardItemModel
       	QList<QString>                 m_ordered_key_list;
       	QHash<QString, Qt::CheckState> m_check_states;
       	QHash<QString, QDateTime>      m_mtime_dict;
+      	QHash<QString, QDateTime>      m_ctime_dict;
       	QHash<QString, int>    		   m_inode_dict;
 
     friend class cb_less_than;

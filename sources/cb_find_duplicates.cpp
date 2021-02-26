@@ -427,6 +427,7 @@ void cb_find_duplicates::cb_install_result_model()
             case cb_result_model::column_key      : default_width = 100; break;
             case cb_result_model::column_size     : default_width = 80;  break;
             case cb_result_model::column_mtime    : default_width = 180; break;
+            case cb_result_model::column_ctime    : default_width = 180; break;
             case cb_result_model::column_inode    : default_width = 140; break;
             default : 
                 auto err_msg = tr("Unforeseen column (%1).").arg(column);

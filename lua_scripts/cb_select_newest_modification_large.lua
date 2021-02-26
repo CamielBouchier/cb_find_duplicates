@@ -5,8 +5,8 @@
 --
 -------------------------------------------------------------------------------
 
-title       = "Contains 'build'"
-description = "Select those containing 'buid' in path"
+title       = "Newest (modification time) > 10MB"
+description = "Select newest  (modification time) from group, but leave < 10MB untouched."
 
 function select(files, mtimes, ctimes, inodes, size)
   -- files : table of filenames.
@@ -15,18 +15,14 @@ function select(files, mtimes, ctimes, inodes, size)
   -- inodes : corresponding table of (fake) inodes. 
   -- size  : filesize.
   local selected = {}
-  for i=1, #files do
-    selected[i] = (nil ~= string.find(files[i], "build"))
-  end
-  all_selected = true
-  for i=1, #files do
-    if not selected[i] then
-      all_selected = false
-      break
+  pivot = 1
+  for i=2, #files do
+    if mtimes[i] < mtimes[pivot] then
+      pivot = i
     end
   end
-  if all_selected then
-    selected[1] = false
+  for i=1, #files do
+    selected[i] = (i ~= pivot) and (size > 10485760)
   end
   return selected
 end

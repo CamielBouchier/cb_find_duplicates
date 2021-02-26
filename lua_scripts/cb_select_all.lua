@@ -5,16 +5,18 @@
 --
 -------------------------------------------------------------------------------
 
-title       = "Manual"
-description = "Select manually"
+title       = "All minus first"
+description = "Select all minus first"
 
-function select(files, times, size)
+function select(files, mtimes, ctimes, inodes, size)
   -- files : table of filenames.
-  -- times : corresponding table of modification times. 
+  -- mtimes : corresponding table of modification times. 
+  -- ctimes : corresponding table of creation times. 
+  -- inodes : corresponding table of (fake) inodes. 
   -- size  : filesize.
   local selected = {}
-  for i=1, #files do
-    selected[i] = false
+  for i=2, #files do
+    selected[i] = true
   end
   return selected
 end

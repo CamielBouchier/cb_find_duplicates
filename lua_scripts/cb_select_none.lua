@@ -5,22 +5,18 @@
 --
 -------------------------------------------------------------------------------
 
-title       = "Newest > 10MB"
-description = "Select newest from group, but leave < 10MB untouched."
+title       = "Deselect all"
+description = "Deselect all"
 
-function select(files, times, size)
+function select(files, mtimes, ctimes, inodes, size)
   -- files : table of filenames.
-  -- times : corresponding table of modification times. 
+  -- mtimes : corresponding table of modification times. 
+  -- ctimes : corresponding table of creation times. 
+  -- inodes : corresponding table of (fake) inodes. 
   -- size  : filesize.
   local selected = {}
-  pivot = 1
-  for i=2, #files do
-    if times[i] < times[pivot] then
-      pivot = i
-    end
-  end
   for i=1, #files do
-    selected[i] = (i ~= pivot) and (size > 10485760)
+    selected[i] = false
   end
   return selected
 end

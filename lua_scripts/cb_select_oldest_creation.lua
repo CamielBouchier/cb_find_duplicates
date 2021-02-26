@@ -5,8 +5,8 @@
 --
 -------------------------------------------------------------------------------
 
-title       = "Contains 'build'"
-description = "Select those containing 'buid' in path"
+title       = "Oldest (creation time)"
+description = "Select oldest (creation time) from group"
 
 function select(files, mtimes, ctimes, inodes, size)
   -- files : table of filenames.
@@ -15,18 +15,14 @@ function select(files, mtimes, ctimes, inodes, size)
   -- inodes : corresponding table of (fake) inodes. 
   -- size  : filesize.
   local selected = {}
-  for i=1, #files do
-    selected[i] = (nil ~= string.find(files[i], "build"))
-  end
-  all_selected = true
-  for i=1, #files do
-    if not selected[i] then
-      all_selected = false
-      break
+  pivot = 1
+  for i=2, #files do
+    if ctimes[i] > ctimes[pivot] then
+      pivot = i
     end
   end
-  if all_selected then
-    selected[1] = false
+  for i=1, #files do
+    selected[i] = (i ~= pivot)
   end
   return selected
 end
