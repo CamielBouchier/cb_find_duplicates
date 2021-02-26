@@ -24,7 +24,6 @@ Qt::ItemFlags cb_filesystem_model::flags(const QModelIndex& the_index) const
     if (the_index.column() == 0)
         {
         rv |= Qt::ItemIsUserCheckable;
-        // rv |= Qt::ItemIsTristate;
         }
     return rv;
     }
@@ -39,8 +38,7 @@ QVariant cb_filesystem_model::data(const QModelIndex& the_index, int role) const
         }
     if (m_check_states.contains(the_index))
         {
-        // Simple case : we have the check_state already.
-        return m_check_states.value(the_index);
+        return m_check_states.value(the_index); // Simple case : we have the check_state already.
         }
     else 
         { 
@@ -118,7 +116,7 @@ void cb_filesystem_model::cb_set_node(const QModelIndex& the_index, const QVaria
 
 // Convenience, determining if a parent node should be checked/unchecked/partially
 
-Qt::CheckState cb_filesystem_model::cb_get_child_status(const QModelIndex& the_index) 
+Qt::CheckState cb_filesystem_model::cb_get_child_status(const QModelIndex& the_index) const
     {
     bool all_checked   = true;
     bool all_unchecked = true;
@@ -155,10 +153,10 @@ Qt::CheckState cb_filesystem_model::cb_get_child_status(const QModelIndex& the_i
 // Get the selected directories.
 // Filtering out the implied ones (i.e. childs of already selected ones).
 
-QStringList cb_filesystem_model::cb_get_selected() const
+const QStringList cb_filesystem_model::cb_get_selected() const
     {
     QStringList selected;
-    for (auto&& the_index : m_check_states.keys()) 
+    for (const auto& the_index: m_check_states.keys()) 
         {
         auto parent_index =the_index.parent();
         if ((parent_index != QModelIndex())       and 

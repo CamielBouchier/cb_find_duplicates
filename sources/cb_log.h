@@ -8,16 +8,14 @@
 #pragma once
  
 #include <QDebug>
+#include <QFile>
 #include <QMutex>
 #include <QObject>
-#include <QThread>
  
 #define  qDLog() qDebug()    << "T:" << QThread::currentThreadId() << "f:" << __FUNCTION__<< ":"
 #define  qILog() qInfo()     << "T:" << QThread::currentThreadId() << "f:" << __FUNCTION__<< ":"
 #define  qWLog() qWarning()  << "T:" << QThread::currentThreadId() << "f:" << __FUNCTION__<< ":"
 #define  qELog() qCritical() << "T:" << QThread::currentThreadId() << "f:" << __FUNCTION__<< ":"
- 
-class QFile;
  
 class cb_log : public QObject
     {
@@ -26,8 +24,8 @@ class cb_log : public QObject
     enum log_level {debug, info, warning, error};
 
     public:
-        static void cb_init(log_level console_log_level = info,
-                            log_level file_log_level    = debug);
+        static void cb_init(const log_level& console_log_level = info,
+                            const log_level& file_log_level    = debug);
         static void cb_clean_logdir();
 
         static QString m_logfile_name;

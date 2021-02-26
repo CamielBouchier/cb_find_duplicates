@@ -42,6 +42,13 @@ cb_find_duplicates::cb_find_duplicates(int& argc, char* argv[]) : QApplication(a
     QCoreApplication::setOrganizationDomain(cb_constants::domain_name);
     QCoreApplication::setApplicationName(cb_constants::application_name);
     QCoreApplication::setApplicationVersion(cb_constants::application_version);
+
+    // Silence cpp_check on 'not initialized'.
+  	m_walk            = false;
+    m_phase           = phase_sizes;
+	m_ui_done_files   = 0;
+	m_ui_nr_failed    = 0;
+  	m_ui_total_files  = 0;
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -65,14 +72,12 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
     cb_populate_action_box();
     cb_on_update_select_scripts();
 
-    /*
-    For the cb_do_gui_communication we have 2 timers.
-    m_ui_elapsed_timer:
-       That is used primarly when cb_do_gui_communication is called in for loops etc.
-       It limits the number of gui updates.
-    m_ui_clock_timer:
-       Fired every 500ms to force cb_do_gui_communication in case no for loop is calling it.
-    */
+    // For the cb_do_gui_communication we have 2 timers.
+    // m_ui_elapsed_timer:
+    //    That is used primarly when cb_do_gui_communication is called in for loops etc.
+    //    It limits the number of gui updates.
+    // m_ui_clock_timer:
+    //    Fired every 500ms to force cb_do_gui_communication in case no for loop is calling it.
 
     m_ui_clock_timer.start(500);
 
@@ -155,7 +160,7 @@ void cb_find_duplicates::cb_recursive_copy(const QString& src_dir, const QString
         auto err_msg = tr("Fatal: could not create '%1'.").arg(dst_dir);
         ABORT(err_msg);
         }
-    for (auto&& filename : QDir(src_dir).entryList(QDir::Files))
+    for (const auto& filename : QDir(src_dir).entryList(QDir::Files))
         {
         auto src_file = src_dir + "/" + filename;
         auto dst_file = dst_dir + "/" + filename;
@@ -167,7 +172,7 @@ void cb_find_duplicates::cb_recursive_copy(const QString& src_dir, const QString
             ABORT(err_msg);
             }
         }
-    for (auto&& dirname : QDir(src_dir).entryList(QDir::Dirs))
+    for (const auto& dirname : QDir(src_dir).entryList(QDir::Dirs))
         {
         if (dirname != "." and dirname != "..")
             {
@@ -228,7 +233,7 @@ void cb_find_duplicates::cb_install_to_data_location()
         }
     qInfo() << "base_src_dir:" << base_src_dir;
 
-    for (auto&& to_copy_dir : to_copy_list)
+    for (const auto& to_copy_dir : to_copy_list)
         {
         auto src_dir = base_src_dir + "/" + to_copy_dir;
         auto dst_dir = m_data_location + "/" + to_copy_dir;
@@ -252,7 +257,6 @@ void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
     auto exe_name = QFileInfo(argv[0]).fileName();
     auto err_msg  = tr("Usage : %1 " "[-t theme]").arg(exe_name);
     err_msg += "\n(";
-    auto cmd_line = exe_name;
     for (short i=1; i<argc; i++) 
         {
         err_msg += QString(" ") + argv[i];
@@ -368,7 +372,7 @@ void cb_find_duplicates::cb_launch_main_window()
     m_main_window->setWindowIcon(window_icon);
     m_main_window->setWindowTitle(cb_constants::application_name);
     
-    auto&& splitter_state = m_user_settings->value("window/main_splitter").toByteArray();
+    const auto& splitter_state = m_user_settings->value("window/main_splitter").toByteArray();
     m_main_window->main_splitter->restoreState(splitter_state);
 
     m_main_window->restoreGeometry(m_user_settings->value("window/geometry").toByteArray());
@@ -499,7 +503,7 @@ void cb_find_duplicates::cb_on_start_search()
   	m_ui_total_files  = 0;
     m_ui_start_time   = QDateTime::currentDateTime();
 
-  	for (auto&& dir : dirs_to_handle)
+  	for (const auto& dir : dirs_to_handle)
     	{
     	if (not cb_do_gui_communication()) break;
 
@@ -578,7 +582,7 @@ void cb_find_duplicates::cb_on_start_search()
 			}
   
       	// Remove all entries that don't have at least 2 files.
-    	for (auto&& key : key_dict.keys())
+    	for (const auto& key : key_dict.keys())
       		{
     		if (not cb_do_gui_communication()) break;
 
@@ -620,7 +624,7 @@ void cb_find_duplicates::cb_on_start_search()
                 // On my machine, and on my testcase improves from 100 minutes to 80 minutes.
       		    #pragma omp parallel for default(shared) 
     	    #endif
-            for (auto&& file : files)
+            for (const auto& file : files)
         		{
                 bool ok;
           		auto md5_sum = cb_md5_sum(file, m_phase == phase_partial_md5, ok);
@@ -655,7 +659,7 @@ void cb_find_duplicates::cb_on_start_search()
 
   	// Remove keys that don't have at least 2 files.
   	m_ui_status = tr("Cleaning unique files.");
-  	for (auto&& key : key_dict.keys())
+  	for (const auto& key : key_dict.keys())
     	{
     	if (not cb_do_gui_communication()) break;
 
@@ -862,6 +866,50 @@ void cb_find_duplicates::cb_on_select_by_script()
 void cb_find_duplicates::cb_on_action()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
+    const auto &cb    = m_main_window->cb_actions;
+    const auto action = cb->itemData(cb->currentIndex()).toInt();
+
+    QString msg;
+
+    if (action == cb_result_model::action_delete)
+        {
+        msg = tr("Are you sure to delete selected files?");
+        m_main_window->lb_action_success->setText(tr("Successful deletions:"));
+        m_main_window->lb_action_fail->setText(tr("Failed deletions:"));
+        m_ui_status = tr("Deleting selected files");
+        }
+    else if (action == cb_result_model::action_link)
+        {
+        msg = tr("Are you sure to hardlink selected files?");
+        m_main_window->lb_action_success->setText(tr("Successful links:"));
+        m_main_window->lb_action_fail->setText(tr("Failed links:"));
+        m_ui_status = tr("Linking selected files");
+        }
+    else
+        {
+        const auto err_msg = tr("Unexpected action: %1").arg(action);
+        ABORT(err_msg);
+        }
+
+    auto rv = QMessageBox::question(m_main_window.get(),
+                                    tr("Are you sure?"),
+                                    msg,
+                                    QMessageBox::Yes | QMessageBox::No);
+    if (rv == QMessageBox::No)
+        {
+        return;
+        }
+
+    // The action itself is done in the m_result_model.
+    m_result_model->cb_do_action(action);
+
+    // Update UI according to results.
+    m_ui_status = tr("Done");
+    m_main_window->lb_action_success_value
+        ->setText(QString::number(m_result_model->m_action_success_count));
+    m_main_window->lb_action_fail_value
+        ->setText(QString::number(m_result_model->m_action_fail_count));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -869,6 +917,7 @@ void cb_find_duplicates::cb_on_action()
 void cb_find_duplicates::cb_on_walk_fail_detail()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
     QDesktopServices::openUrl(QUrl("file:///" + m_walk_fail_filename, QUrl::TolerantMode));
     }
 
@@ -877,6 +926,8 @@ void cb_find_duplicates::cb_on_walk_fail_detail()
 void cb_find_duplicates::cb_on_action_success_detail()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
+    QDesktopServices::openUrl(QUrl("file:///" + m_action_success_filename, QUrl::TolerantMode));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -884,6 +935,17 @@ void cb_find_duplicates::cb_on_action_success_detail()
 void cb_find_duplicates::cb_find_duplicates::cb_on_action_fail_detail()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
+    QDesktopServices::openUrl(QUrl("file:///" + m_action_fail_filename, QUrl::TolerantMode));
+    }
+
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+void cb_find_duplicates::cb_on_log()
+    {
+    qInfo() << __PRETTY_FUNCTION__;
+
+    QDesktopServices::openUrl(QUrl(cb_log::m_logfile_name, QUrl::TolerantMode));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -891,6 +953,7 @@ void cb_find_duplicates::cb_find_duplicates::cb_on_action_fail_detail()
 void cb_find_duplicates::cb_on_language()
     {
     qInfo() << __PRETTY_FUNCTION__;
+
     if (sender() == m_main_window->action_dutch) 
         {
         m_main_window->action_dutch->setChecked(true);
@@ -906,14 +969,6 @@ void cb_find_duplicates::cb_on_language()
     QMessageBox::information(m_main_window.get(),
                              tr("Please restart"),
                              tr("The language setting will be changed next time you start."));
-    }
-
-//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-void cb_find_duplicates::cb_on_log()
-    {
-    qInfo() << __PRETTY_FUNCTION__;
-    QDesktopServices::openUrl(QUrl(cb_log::m_logfile_name, QUrl::TolerantMode));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

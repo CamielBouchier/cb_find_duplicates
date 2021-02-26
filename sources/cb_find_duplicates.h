@@ -42,13 +42,13 @@ class cb_find_duplicates : public QApplication
         void cb_on_update_select_scripts();
         void cb_on_walk_fail_detail();
 
-        QString                             m_action_success_filename;
-        QString                             m_action_fail_filename;
-        QString                             m_data_location;
+        QString m_action_success_filename;
+        QString m_action_fail_filename;
+        QString m_data_location;
 
-        std::unique_ptr <cb_lua_selector>   m_lua_selector;
-        std::unique_ptr <cb_main_window>    m_main_window;
-        std::unique_ptr <QSettings>         m_user_settings;
+        std::unique_ptr<cb_lua_selector> m_lua_selector;
+        std::unique_ptr<cb_main_window>  m_main_window;
+        std::unique_ptr<QSettings>       m_user_settings;
 
     private slots:
 
@@ -70,19 +70,17 @@ class cb_find_duplicates : public QApplication
         void cb_set_stylesheet();
         void cb_set_temp_location();
         void cb_set_user_settings();
-      	void cb_stop();
-      	void cb_walk(const QStringList& dirs);
 
-        std::unique_ptr <cb_filesystem_model> m_filesystem_model;
-        std::unique_ptr <cb_result_model>     m_result_model;
+        std::unique_ptr<cb_filesystem_model>  m_filesystem_model;
+        std::unique_ptr<cb_result_model>      m_result_model;
 
       	bool                                  m_walk;
 
         cb_phase                              m_phase;
 
-		intmax_t	                          m_ui_done_files;
-		intmax_t	                          m_ui_nr_failed;
-		intmax_t	                          m_ui_total_files;
+		uint64_t	                          m_ui_done_files;
+		uint64_t	                          m_ui_nr_failed;
+		uint64_t	                          m_ui_total_files;
 
         QDateTime                             m_ui_end_time;
         QDateTime                             m_ui_phase_start_time;

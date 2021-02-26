@@ -41,10 +41,10 @@ cb_lua_selector::cb_lua_selector()
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 void cb_lua_selector::cb_call_script(const QString&      script_name, 
-                                     const QStringList&  files,
-                                     const QList <uint>& times,
+                                     const QStringList  &files,
+                                     const QList <uint> &times,
                                      const int&          size,
-                                           QList <bool>& selected,
+                                           QList <bool> &selected,
                                            bool&         ok,
                                            QString&      message)
      
@@ -134,16 +134,7 @@ void cb_lua_selector::cb_call_script(const QString&      script_name,
         }
 
     // Did the script not select all values ?
-    bool all_selected = true;
-    for (auto X : selected)
-        {
-        if (not X)
-            {
-            all_selected = false;
-            break;
-            }
-        }
-    if (all_selected)
+    if (-1 == selected.indexOf("false"))
         {
         ok = false;
         message = tr("Script did select all values. At least one should be not selected.");

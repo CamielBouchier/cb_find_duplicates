@@ -17,7 +17,7 @@ class cb_dialog : public QDialog, public Ui::cb_dialog
 
     public:
 
-        cb_dialog(const QString& message);
+        explicit cb_dialog(const QString& message);
         ~cb_dialog();
 
     protected:

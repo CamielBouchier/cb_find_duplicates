@@ -85,7 +85,7 @@ bool cb_result_model::setData(const QModelIndex& the_index, const QVariant& valu
     if (check_value == Qt::Checked)
         {
         bool all_checked = true;
-        for (auto&& f : m_key_dict[key])
+        for (const auto& f : m_key_dict[key])
             {
             if (not m_check_states.contains(f) or (m_check_states.value(f) == Qt::Unchecked))
                 {
@@ -136,20 +136,19 @@ QVariant cb_result_model::headerData(int section, Qt::Orientation orientation, i
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_result_model::cb_set_result(bool do_recalculate_times)
+void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
     {
-    qInfo() << __PRETTY_FUNCTION__ << do_recalculate_times;
+    qInfo() << __PRETTY_FUNCTION__ << do_recalculate_times_and_inodes;
 
     // m_mtime_dict, m_inode_dict are basically caches that
     // need to be calculate first time, but not after a cb_set_result due to sorting or hiding.
-    if (do_recalculate_times) 
+    if (do_recalculate_times_and_inodes) 
         {
         m_mtime_dict.clear();
         m_inode_dict.clear();
-        for (auto&& key : m_key_dict.keys()) 
+        for (const auto& key : m_key_dict.keys()) 
             {
-            auto& files = m_key_dict[key];
-            for (auto& file : files)
+            for (const auto& file: m_key_dict[key])
                 {
                 m_mtime_dict[file] = QFileInfo(file).lastModified();
                 m_inode_dict[file] = cb_get_fake_inode(file);
@@ -158,7 +157,7 @@ void cb_result_model::cb_set_result(bool do_recalculate_times)
         }
 
     // Delete all entries in the ResultTable, sort the data and add them.
-    removeRows(0,rowCount());
+    removeRows(0, rowCount());
     cb_sort();
 
     int color_index = 0;
@@ -168,7 +167,7 @@ void cb_result_model::cb_set_result(bool do_recalculate_times)
     m_nr_file_groups = 0;
 
     // Start adding them again.
-    for (auto&& key : m_ordered_key_list) 
+    for (const auto& key: m_ordered_key_list) 
         {
         m_nr_file_groups++;
 
@@ -181,7 +180,7 @@ void cb_result_model::cb_set_result(bool do_recalculate_times)
         auto size = cb_size_from_key(key);
         m_overhead_bytes -= size;   // Compensating addition of first in group.
 
-        for (auto&& file : m_key_dict[key])
+        for (const auto& file: m_key_dict[key])
             {
             m_total_files++;
             m_overhead_bytes += size;
@@ -244,7 +243,7 @@ class cb_less_than
 bool cb_less_than::operator()(const QString& key1, const QString& key2) const
     {
     bool rv;
-    auto& sort_column = m_model->m_sort_column;
+    const auto& sort_column = m_model->m_sort_column;
 
     if (m_inner_sort)
         {
@@ -319,7 +318,7 @@ bool cb_less_than::operator()(const QString& key1, const QString& key2) const
 void cb_result_model::cb_sort()
     {
     m_ordered_key_list.clear();
-    for (auto&& key : m_key_dict.keys())
+    for (const auto& key : m_key_dict.keys())
         {
         m_ordered_key_list.append(key);
         auto& files = m_key_dict[key];
@@ -330,13 +329,13 @@ void cb_result_model::cb_sort()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_result_model::cb_select_by_script(const QString& script_name)
+void cb_result_model::cb_select_by_script(const QString &script_name)
     {
     qInfo() << __PRETTY_FUNCTION__;
 
-    for (auto&& key : m_key_dict.keys())
+    for (const auto& key : m_key_dict.keys())
         {
-        auto& files = m_key_dict[key];
+        const auto& files = m_key_dict[key];
         QList <bool> selected;
         QList <uint> times;
         for (int i = 0; i < files.size(); i++)
@@ -394,16 +393,16 @@ void cb_result_model::cb_do_action(const int action)
     m_action_success_count = 0;
     m_action_fail_count    = 0;
 
-    for (auto& key : m_key_dict.keys())
+    for (const auto &key : m_key_dict.keys())
         {
-        auto& files = m_key_dict[key];
+        const auto &files = m_key_dict[key];
 
         // Find first unchecked for the case of Link.
         QString unchecked_file;
         if (action == action_link)
             {
-            for (auto& file : files)
-                {
+            for (const auto& file: files)
+                {   
                 if (m_check_states[file] == Qt::Unchecked)
                     {
                     unchecked_file = file;
@@ -418,7 +417,7 @@ void cb_result_model::cb_do_action(const int action)
             }
 
         QStringList new_filelist;
-        for (auto& file : files)
+        for (const auto& file : files)
             {
             if (m_check_states[file] != Qt::Checked)
                 {
@@ -467,27 +466,30 @@ void cb_result_model::cb_do_action(const int action)
         }
 
     // Clean the m_key_dict from lists with less than 2 entries.
-    for (auto& key : m_key_dict.keys())
+    for (const auto& key: m_key_dict.keys())
         {
-        auto& files    = m_key_dict[key];
-        auto  nr_files = files.size();
+        const auto& files    = m_key_dict[key];
+        const auto  nr_files = files.size();
         if (nr_files < 2)
             {
             m_key_dict.remove(key);
             }
         }
 
-    cb_set_result(false);
+    const auto do_recalculate_times_and_inodes = (action == action_link);
+    cb_set_result(do_recalculate_times_and_inodes);
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 void cb_result_model::cb_log_key_dict() const
     {
-    for (auto& key : m_key_dict.keys())
+    qInfo() << __PRETTY_FUNCTION__;
+
+    for (const auto &key : m_key_dict.keys())
         {
-        auto& files    = m_key_dict[key];
-        auto  nr_files = files.size();
+        const auto& files    = m_key_dict[key];
+        const auto  nr_files = files.size();
         qInfo() << "ResultModel"
                 << QString("m_key_dict[%1](%2) : %3)")
                    .arg(key, 80)

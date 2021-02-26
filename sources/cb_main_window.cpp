@@ -132,7 +132,7 @@ void cb_main_window::cb_reset_progress_box()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_main_window::cb_set_config(cb_config config)
+void cb_main_window::cb_set_config(const cb_config& config)
     {
     if (config == config_start)
         {
@@ -176,6 +176,7 @@ void cb_main_window::cb_set_config(cb_config config)
 void cb_main_window::closeEvent(QCloseEvent* event)
     {
     qInfo() << __PRETTY_FUNCTION__;
+
     event->ignore();
     cb_app->cb_on_quit();
     }

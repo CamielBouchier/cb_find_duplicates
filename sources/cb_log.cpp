@@ -47,8 +47,8 @@ cb_log::~cb_log()
 
 //..................................................................................................
  
-void cb_log::cb_init(cb_log::log_level console_log_level,
-                     cb_log::log_level file_log_level)
+void cb_log::cb_init(const cb_log::log_level& console_log_level,
+                     const cb_log::log_level& file_log_level)
     {
     m_console_log_level = console_log_level;
     m_file_log_level    = file_log_level;
@@ -69,8 +69,7 @@ void cb_log::cb_init(cb_log::log_level console_log_level,
     m_logfile_name = 
         m_logdir + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmsszzz.log");
     m_file = new QFile(m_logfile_name);
-	auto success = m_file->open(QIODevice::WriteOnly);
-    if (!success)
+	if (not  m_file->open(QIODevice::WriteOnly))
         {
         QTextStream(stderr) << "Could not open '" << m_logfile_name << "'. Aborting." << Qt::endl;
         exit(EXIT_FAILURE);
@@ -100,7 +99,7 @@ void cb_log::cb_clean_logdir()
 
     auto now_date = QDateTime::currentDateTime();
     int nr_entries = 0;
-    for (auto&& entry_info : QDir(m_logdir).entryInfoList(QDir::Files, QDir::Time))
+    for (const auto& entry_info : QDir(m_logdir).entryInfoList(QDir::Files, QDir::Time))
         {
         nr_entries++;
         auto expiration_date = entry_info.lastModified().addDays(days_to_keep);

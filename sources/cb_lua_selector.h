@@ -7,10 +7,11 @@
 
 #pragma once
 
-
 #include <QtCore>
 #include <lua.hpp>
   
+//;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 class cb_lua_selector : public QObject
     {
     Q_OBJECT
@@ -22,9 +23,9 @@ class cb_lua_selector : public QObject
 
       void cb_call_script(const QString&      script_name, 
                           const QStringList&  files,
-                          const QList <uint>& times,
+                          const QList<uint>&  times,
                           const int&          size, 
-                                QList <bool>& selected,
+                                QList<bool>&  selected,
                                 bool&         ok,
                                 QString&      message);
 

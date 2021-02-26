@@ -24,28 +24,20 @@
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
+const QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
     {
-    if (not QFileInfo(filename).isReadable())
-        {
-        auto error_msg = QString("Could not read '%1'.").arg(filename);
-        qWarning() << error_msg;
-        ok = false;
-        return QString();
-        }
-  
     QFile file(filename);
     if (not file.open(QIODevice::ReadOnly))
         {
         auto error_msg = QString("Could not open '%1'.").arg(filename);
-        qWarning() << error_msg;
+        qWarning() << error_msg << file.errorString();
         ok = false;
         return QString();
         }
 
-    auto file_size = file.size();
-    auto target_chunk_size = partial ? 4 * 1024 * 1024 : 128 * 1024 * 1024;
-    auto chunk_size = (file_size < target_chunk_size) ? file_size : target_chunk_size;
+    const auto file_size = file.size();
+    const auto target_chunk_size = partial ? 4 * 1024 * 1024 : 128 * 1024 * 1024;
+    const auto chunk_size = (file_size < target_chunk_size) ? file_size : target_chunk_size;
     QCryptographicHash hash(QCryptographicHash::Md5);
     while (not file.atEnd())
         {
@@ -102,18 +94,18 @@ QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
         DWORD    dwVolumeSerialNumber;
         DWORD    nFileIndexHigh;
         DWORD    nFileIndexLow;
-        friend bool operator == (const cb_file_identifier& x1, const cb_file_identifier& x2);
-        friend bool operator != (const cb_file_identifier& x1, const cb_file_identifier& x2);
+        friend bool operator == (const cb_file_identifier &x1, const cb_file_identifier &x2);
+        friend bool operator != (const cb_file_identifier &x1, const cb_file_identifier &x2);
         };
 
-    bool operator == (const cb_file_identifier& x1, const cb_file_identifier& x2)
+    bool operator == (const cb_file_identifier &x1, const cb_file_identifier &x2)
         {
         return (x1.dwVolumeSerialNumber == x2.dwVolumeSerialNumber) and
                (x1.nFileIndexHigh == x2.nFileIndexHigh) and
                (x1.nFileIndexLow == x2.nFileIndexLow);
         }
 
-    bool operator != (const cb_file_identifier& x1, const cb_file_identifier& x2)
+    bool operator != (const cb_file_identifier &x1, const cb_file_identifier &x2)
         {
         return !(x1 == x2);
         }
@@ -124,17 +116,17 @@ QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
         {
         dev_t     st_dev;  
         ino_t     st_ino;  
-        friend bool operator == (const cb_file_identifier& x1, const cb_file_identifier& x2);
-        friend bool operator != (const cb_file_identifier& x1, const cb_file_identifier& x2);
+        friend bool operator == (const cb_file_identifier &x1, const cb_file_identifier &x2);
+        friend bool operator != (const cb_file_identifier &x1, const cb_file_identifier &x2);
         };
 
-    bool operator == (const cb_file_identifier& x1, const cb_file_identifier& x2)
+    bool operator == (const cb_file_identifier &x1, const cb_file_identifier &x2)
         {
         return (x1.st_dev == x2.st_dev) and
                (x1.st_ino == x2.st_ino);
         }
   
-    bool operator != (const cb_file_identifier& x1, const cb_file_identifier& x2)
+    bool operator != (const cb_file_identifier &x1, const cb_file_identifier &x2)
         {
         return !(x1 == x2);
         }
@@ -145,45 +137,51 @@ QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-cb_file_identifier cb_get_file_identifier(const QString& file)
+cb_file_identifier cb_get_file_identifier(const QString &file)
     {
     cb_file_identifier identifier;
 
     #if defined(Q_OS_WIN)
 
-        BY_HANDLE_FILE_INFORMATION lpFileInformation;
-        HANDLE fileHandle;
-        fileHandle = CreateFileW(file.toStdWString().c_str(),
-                                 FILE_READ_ATTRIBUTES, 
-                                 FILE_SHARE_READ,
-                                 NULL,
-                                 OPEN_EXISTING,
-                                 FILE_ATTRIBUTE_NORMAL|FILE_FLAG_BACKUP_SEMANTICS,
-                                 NULL);
-        int success = GetFileInformationByHandle(fileHandle, &lpFileInformation);
-        CloseHandle(fileHandle);
+    identifier.dwVolumeSerialNumber = 0;
+    identifier.nFileIndexHigh       = 0;
+    identifier.nFileIndexLow        = 0;
 
+    BY_HANDLE_FILE_INFORMATION lpFileInformation;
+    HANDLE fileHandle;
+    fileHandle = CreateFileW(file.toStdWString().c_str(),
+                             FILE_READ_ATTRIBUTES, 
+                             FILE_SHARE_READ,
+                             NULL,
+                             OPEN_EXISTING,
+                             FILE_ATTRIBUTE_NORMAL|FILE_FLAG_BACKUP_SEMANTICS,
+                             NULL);
+    int success = GetFileInformationByHandle(fileHandle, &lpFileInformation);
+    CloseHandle(fileHandle);
+
+    if (success)
+        {
         identifier.dwVolumeSerialNumber = lpFileInformation.dwVolumeSerialNumber;
         identifier.nFileIndexHigh       = lpFileInformation.nFileIndexHigh;
         identifier.nFileIndexLow        = lpFileInformation.nFileIndexLow; 
-
-        if (not success)
-            {
-            identifier.dwVolumeSerialNumber = 0;
-            identifier.nFileIndexHigh       = 0;
-            identifier.nFileIndexLow        = 0;
-            }
+        }
 
     #elif defined(Q_OS_LINUX)
 
-        struct stat info;
-        bool success = (0 == stat(qPrintable(file), &info));
+    identifier.st_dev = 0;
+    identifier.st_ino = 0;
 
+    struct stat info;
+    bool success = (0 == stat(qPrintable(file), &info));
+
+    if (success)
+        {
         identifier.st_dev = info.st_dev;
         identifier.st_ino = info.st_ino;
+        }
 
     #else
-        #error Unsupported OS.
+    #error Unsupported OS.
     #endif
     
     if (not success)
@@ -218,9 +216,9 @@ bool cb_is_same_file(const QStringList& files)
         }
     auto ref_identifier = cb_get_file_identifier(files.at(0));
     auto is_same = true;
-    for (int idx=1; idx<nr_files; idx++)
+    for (const auto& file: files)
         {
-        if (cb_get_file_identifier(files.at(idx)) != ref_identifier)
+        if (cb_get_file_identifier(file) != ref_identifier)
             {
             is_same = false;
             break;
@@ -293,7 +291,7 @@ bool cb_hardlink(const QString& existing_file, const QString& new_file)
                        .arg(__PRETTY_FUNCTION__)
                        .arg(existing_file)
                        .arg(new_file)
-                       .arg(strerror(errno)));
+                       .arg(strerror(errno));
             }
 
     #else
@@ -304,7 +302,7 @@ bool cb_hardlink(const QString& existing_file, const QString& new_file)
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-QString cb_sizestring_from_size(uint64_t size)
+const QString cb_sizestring_from_size(const uint64_t size)
     {
     if (size > giga)
         {
@@ -333,18 +331,18 @@ uint64_t cb_size_from_key(const QString& key)
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-QString cb_sizestring_from_key(const QString& key)
+const QString cb_sizestring_from_key(const QString& key)
     {
     return cb_sizestring_from_size(cb_size_from_key(key));
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-QString cb_represent(const QStringList& string_list)
+const QString cb_represent(const QStringList& string_list)
     {
     QString rv = "[";
-    bool    need_separator = false;
-    for (auto&& string : string_list) 
+    bool need_separator = false;
+    for (const auto& string: string_list) 
         {
         if (need_separator) 
             {

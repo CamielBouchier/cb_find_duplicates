@@ -13,6 +13,8 @@
 
 cb_dialog::cb_dialog(const QString& message) : QDialog(nullptr)
 	{
+    qInfo() << __PRETTY_FUNCTION__;
+
     setupUi(this);
     tb_text->setText(message);
     tb_text->setOpenExternalLinks(true);
