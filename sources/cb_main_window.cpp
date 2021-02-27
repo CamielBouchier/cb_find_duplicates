@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QSortFilterProxyModel>
 
+#include "cb_abort.h"
 #include "cb_find_duplicates.h"
 #include "cb_main_window.h"
 
@@ -167,7 +168,8 @@ void cb_main_window::cb_set_config(const cb_config& config)
         }
     else 
         {
-        qFatal(qPrintable(QString("unforeseen config: %1").arg(config)));
+        auto err_msg = QString("unforeseen config: %1").arg(config);
+        ABORT(err_msg);
         }
     }
 

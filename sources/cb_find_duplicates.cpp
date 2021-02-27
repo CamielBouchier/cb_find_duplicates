@@ -18,6 +18,10 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 #include <cb_abort.h>
 #include <cb_constants.h>
 #include <cb_dialog.h>
@@ -88,6 +92,7 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
     qInfo() << "Qt version:" << qVersion();
+    qInfo() << "Max_threads:" << omp_get_max_threads();
 
     m_main_window->show();
     }

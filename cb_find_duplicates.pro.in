@@ -13,6 +13,11 @@ CONFIG         += @CONSOLE@
 CONFIG         += silent
 TEMPLATE        = app
 TARGET          = cb_find_duplicates
+
+message("Building: " $$TARGET)
+message("CONFIG:   " $$CONFIG)
+message("QMAKESPEC:" $$QMAKESPEC)
+
 DEPENDPATH     += .
 DEPENDPATH     += ui
 DEPENDPATH     += sources
@@ -33,6 +38,12 @@ RESOURCES       = cb_find_duplicates.qrc
 
 #
 QT += widgets
+
+# Clang correction removing -mthreads
+*-clang++ 
+    {
+    QMAKE_CXXFLAGS_EXCEPTIONS_ON -= -mthreads
+    }
 
 # Start values : taken from configure
 QMAKE_CXXFLAGS_RELEASE     += @CXXFLAGS@
