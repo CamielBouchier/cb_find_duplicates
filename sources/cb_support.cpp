@@ -1,6 +1,25 @@
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 //
 // $BeginLicense$
+//
+// (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+//
+// This file is part of cb_find_duplicates.
+// All rights reserved.
+// You are granted a non-exclusive and non-transferable license to use this
+// software for personal or internal business purposes.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 // $EndLicense$
 //
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -65,7 +84,7 @@ const QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
 //   DWORD    nFileIndexHigh;          (*)
 //   DWORD    nFileIndexLow;           (*)
 // } BY_HANDLE_FILE_INFORMATION, *PBY_HANDLE_FILE_INFORMATION;
-// 
+//
 // (*) together defines unique file.
 
 //  Info from Linux :
@@ -114,8 +133,8 @@ const QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
 
     struct cb_file_identifier
         {
-        dev_t     st_dev;  
-        ino_t     st_ino;  
+        dev_t     st_dev;
+        ino_t     st_ino;
         friend bool operator == (const cb_file_identifier &x1, const cb_file_identifier &x2);
         friend bool operator != (const cb_file_identifier &x1, const cb_file_identifier &x2);
         };
@@ -125,7 +144,7 @@ const QString cb_md5_sum(const QString& filename, const bool partial, bool& ok)
         return (x1.st_dev == x2.st_dev) and
                (x1.st_ino == x2.st_ino);
         }
-  
+
     bool operator != (const cb_file_identifier &x1, const cb_file_identifier &x2)
         {
         return !(x1 == x2);
@@ -150,7 +169,7 @@ cb_file_identifier cb_get_file_identifier(const QString &file)
     BY_HANDLE_FILE_INFORMATION lpFileInformation;
     HANDLE fileHandle;
     fileHandle = CreateFileW(file.toStdWString().c_str(),
-                             FILE_READ_ATTRIBUTES, 
+                             FILE_READ_ATTRIBUTES,
                              FILE_SHARE_READ,
                              NULL,
                              OPEN_EXISTING,
@@ -163,7 +182,7 @@ cb_file_identifier cb_get_file_identifier(const QString &file)
         {
         identifier.dwVolumeSerialNumber = lpFileInformation.dwVolumeSerialNumber;
         identifier.nFileIndexHigh       = lpFileInformation.nFileIndexHigh;
-        identifier.nFileIndexLow        = lpFileInformation.nFileIndexLow; 
+        identifier.nFileIndexLow        = lpFileInformation.nFileIndexLow;
         }
 
     #elif defined(Q_OS_LINUX)
@@ -183,7 +202,7 @@ cb_file_identifier cb_get_file_identifier(const QString &file)
     #else
     #error Unsupported OS.
     #endif
-    
+
     if (not success)
         {
         auto err_msg = QString("Unforeseen non-success in '%1', file '%2', reason '%3'")
@@ -192,7 +211,7 @@ cb_file_identifier cb_get_file_identifier(const QString &file)
                        arg(strerror(errno));
         qWarning() << err_msg;
         }
-    
+
     return identifier;
     }
 
@@ -209,7 +228,7 @@ bool cb_is_same_file(const QString& file1, const QString& file2)
 bool cb_is_same_file(const QStringList& files)
     {
     auto nr_files = files.size();
-    if (nr_files == 0) 
+    if (nr_files == 0)
         {
         auto err_msg = QObject::tr("nr_files:0");
         ABORT(err_msg);
@@ -237,7 +256,7 @@ uint64_t cb_get_fake_inode(const QString& file)
 
     #if defined(Q_OS_WIN)
 
-        fake_inode =  (uint64_t) identifier.nFileIndexHigh << 32 | identifier.nFileIndexLow; 
+        fake_inode =  (uint64_t) identifier.nFileIndexHigh << 32 | identifier.nFileIndexLow;
         fake_inode ^= (uint64_t) identifier.dwVolumeSerialNumber;
 
     #elif defined(Q_OS_LINUX)
@@ -248,8 +267,8 @@ uint64_t cb_get_fake_inode(const QString& file)
     #else
         #error Unsupported OS.
     #endif
-   
-    return fake_inode; 
+
+    return fake_inode;
     }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -265,14 +284,14 @@ bool cb_hardlink(const QString& existing_file, const QString& new_file)
             {
             DWORD ErrorMessageId = GetLastError();
             LPSTR message_buffer = nullptr;
-            FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-                           FORMAT_MESSAGE_FROM_SYSTEM     | 
+            FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                           FORMAT_MESSAGE_FROM_SYSTEM     |
                            FORMAT_MESSAGE_IGNORE_INSERTS,
-                           NULL, 
-                           ErrorMessageId, 
-                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
-                           (LPSTR) &message_buffer, 
-                           0, 
+                           NULL,
+                           ErrorMessageId,
+                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                           (LPSTR) &message_buffer,
+                           0,
                            NULL);
             qInfo() << QString("No success %1(%2,%3) for reason '%4'")
                        .arg(__PRETTY_FUNCTION__)
@@ -342,9 +361,9 @@ const QString cb_represent(const QStringList& string_list)
     {
     QString rv = "[";
     bool need_separator = false;
-    for (const auto& string: string_list) 
+    for (const auto& string: string_list)
         {
-        if (need_separator) 
+        if (need_separator)
             {
             rv += ", ";
             }

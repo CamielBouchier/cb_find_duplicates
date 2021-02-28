@@ -4,6 +4,25 @@
 #;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #
 # $BeginLicense$
+#
+# (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+#
+# This file is part of cb_find_duplicates.
+# All rights reserved.
+# You are granted a non-exclusive and non-transferable license to use this
+# software for personal or internal business purposes.
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 # $EndLicense$
 #
 #;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -23,7 +42,7 @@ import os
 import re
 import shutil
 import stat
-import subprocess  
+import subprocess
 
 from time import localtime
 from time import strftime
@@ -70,7 +89,7 @@ def cb_collect_bins():
     except Exception as e:
         cb_exit_message(f"Could not run '{file_cmd}' on '{tgt_executable}': {e}.")
 
-    dll_base_bins = [] 
+    dll_base_bins = []
 
     for dll_base in dll_bases:
 
@@ -99,14 +118,14 @@ def cb_collect_bins():
 
     if False:
         for K,V in dll_map.items():
-            print(f"{K0:20}:{V}") 
+            print(f"{K0:20}:{V}")
 
     collected_files = [tgt_executable]
     file_idx = 0
     while file_idx < len(collected_files):
         afile = collected_files[file_idx]
         print(f"{program_name}: analyzing '{afile}'.")
-        try: 
+        try:
             dependants = os.popen(f"{obj_dump} -p {afile} | {grep_cmd} 'DLL Name'").read().strip().split('\n')
         except Exception as e:
             cb_exit_message(f"Could not run '{obj_dump}' on '{afile}': {e}.")
@@ -160,7 +179,7 @@ def cb_copy_others_to_bin():
 
     for afile in files:
         print(f"{program_name}: copying '{afile}'")
-        try: 
+        try:
             shutil.copyfile(afile, os.path.join(tgt_dir, afile))
         except OSError as e:
             cb_exit_message(f"Cannot create: {os.strerror(e.errno)}.")
@@ -202,7 +221,7 @@ def cb_exit_message(message = None):
         print()
 
     else:
-    
+
         print()
         print(message)
         print(f"{program_name} failed.")
@@ -212,13 +231,13 @@ def cb_exit_message(message = None):
 #;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 if __name__ == "__main__":
-    
+
     cb_intro_message()
     cb_create_and_init_tgt_dir()
     cb_win_deploy_qt()
     cb_collect_bins()
     cb_copy_others_to_bin()
-    cb_exit_message()	
+    cb_exit_message()
 
 #;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

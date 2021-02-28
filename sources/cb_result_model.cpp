@@ -1,6 +1,25 @@
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 //
 // $BeginLicense$
+//
+// (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+//
+// This file is part of cb_find_duplicates.
+// All rights reserved.
+// You are granted a non-exclusive and non-transferable license to use this
+// software for personal or internal business purposes.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 // $EndLicense$
 //
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -59,7 +78,7 @@ QVariant cb_result_model::data(const QModelIndex& the_index, int role) const
         	{
         	return m_check_states.value(file);
         	}
-      	else 
+      	else
         	{
         	return Qt::Unchecked;
         	}
@@ -120,7 +139,7 @@ QVariant cb_result_model::headerData(int section, Qt::Orientation orientation, i
         {
         return QStandardItemModel::headerData(section, orientation, role);
         }
-    switch (section) 
+    switch (section)
         {
         case column_basename : return tr("Filename");
         case column_dirname  : return tr("Directory");
@@ -129,12 +148,12 @@ QVariant cb_result_model::headerData(int section, Qt::Orientation orientation, i
         case column_mtime    : return tr("Modification time");
         case column_ctime    : return tr("Creation time");
         case column_inode    : return tr("Inode");
-        default : 
+        default :
             auto err_msg = tr("Unforeseen column: %1").arg(section);
             ABORT(err_msg);
         }
     return QVariant();
-    } 
+    }
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -144,12 +163,12 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
 
     // m_mtime_dict, m_inode_dict are basically caches that
     // need to be calculate first time, but not after a cb_set_result due to sorting or hiding.
-    if (do_recalculate_times_and_inodes) 
+    if (do_recalculate_times_and_inodes)
         {
         m_mtime_dict.clear();
         m_ctime_dict.clear();
         m_inode_dict.clear();
-        for (const auto& key : m_key_dict.keys()) 
+        for (const auto& key : m_key_dict.keys())
             {
             for (const auto& file: m_key_dict[key])
                 {
@@ -171,7 +190,7 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
     m_nr_file_groups = 0;
 
     // Start adding them again.
-    for (const auto& key: m_ordered_key_list) 
+    for (const auto& key: m_ordered_key_list)
         {
         m_nr_file_groups++;
 
@@ -202,9 +221,9 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
             basename_item->setData(color_index, Qt::UserRole+3);
 
             QList <QStandardItem*> row;
-            for (int column = 0; column < nr_columns; column++) 
+            for (int column = 0; column < nr_columns; column++)
                 {
-                switch (column) 
+                switch (column)
                     {
                     case column_basename : row.append(basename_item); break;
                     case column_dirname  : row.append(dirname_item);  break;
@@ -213,11 +232,11 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
                     case column_mtime    : row.append(mtime_item);    break;
                     case column_ctime    : row.append(ctime_item);    break;
                     case column_inode    : row.append(inode_item);    break;
-                    default : 
+                    default :
                         auto err_msg = tr("Unforeseen column (%1)").arg(column);
                         ABORT(err_msg);
                     }
-                } 
+                }
             row[0]->setCheckable(true);
             appendRow(row);
             }
@@ -230,12 +249,12 @@ void cb_result_model::cb_set_result(bool do_recalculate_times_and_inodes)
 // Sorting , first files within each key ('Inner') , and then keys.
 // Supported by "Functors" to accomodate for qSort's cb_less_than getting access to members.
 
-class cb_less_than 
+class cb_less_than
     {
     public :
-        cb_less_than(cb_result_model* ptr, bool inner_sort) 
+        cb_less_than(cb_result_model* ptr, bool inner_sort)
             {
-            m_model = ptr; 
+            m_model = ptr;
             m_inner_sort = inner_sort;
             };
         bool operator()(const QString& key1, const QString& key2)  const;
@@ -255,23 +274,23 @@ bool cb_less_than::operator()(const QString& key1, const QString& key2) const
         {
         if (sort_column == cb_result_model::column_basename)
             {
-            rv = ( QFileInfo(key1).fileName() < QFileInfo(key2).fileName() ); 
+            rv = ( QFileInfo(key1).fileName() < QFileInfo(key2).fileName() );
             }
         else if (sort_column == cb_result_model::column_mtime)
             {
-            rv = ( m_model->m_mtime_dict[key1] < m_model->m_mtime_dict[key2] ); 
+            rv = ( m_model->m_mtime_dict[key1] < m_model->m_mtime_dict[key2] );
             }
         else if (sort_column == cb_result_model::column_ctime)
             {
-            rv = ( m_model->m_ctime_dict[key1] < m_model->m_ctime_dict[key2] ); 
+            rv = ( m_model->m_ctime_dict[key1] < m_model->m_ctime_dict[key2] );
             }
         else if (sort_column == cb_result_model::column_inode)
             {
-            rv = ( m_model->m_inode_dict[key1] < m_model->m_inode_dict[key2] ); 
+            rv = ( m_model->m_inode_dict[key1] < m_model->m_inode_dict[key2] );
             }
         else
             {
-            rv = ( QFileInfo(key1).path() < QFileInfo(key2).path() ); 
+            rv = ( QFileInfo(key1).path() < QFileInfo(key2).path() );
             }
         }
     else
@@ -280,48 +299,48 @@ bool cb_less_than::operator()(const QString& key1, const QString& key2) const
             {
             QString file1 = m_model->m_key_dict[key1].at(0);
             QString file2 = m_model->m_key_dict[key2].at(0);
-            rv = ( QFileInfo(file1).fileName() < QFileInfo(file2).fileName() ); 
+            rv = ( QFileInfo(file1).fileName() < QFileInfo(file2).fileName() );
             }
         else if (sort_column == cb_result_model::column_dirname)
             {
             QString file1 = m_model->m_key_dict[key1].at(0);
             QString file2 = m_model->m_key_dict[key2].at(0);
-            rv = ( QFileInfo(file1).path() < QFileInfo(file2).path() ); 
+            rv = ( QFileInfo(file1).path() < QFileInfo(file2).path() );
             }
         else if (sort_column == cb_result_model::column_key)
             {
-            rv = ( key1 < key2 ); 
+            rv = ( key1 < key2 );
             }
         else if (sort_column == cb_result_model::column_size)
             {
-            rv = ( cb_size_from_key(key1) < cb_size_from_key(key2) ); 
+            rv = ( cb_size_from_key(key1) < cb_size_from_key(key2) );
             }
         else if (sort_column == cb_result_model::column_mtime)
             {
             QString file1 = m_model->m_key_dict[key1].at(0);
             QString file2 = m_model->m_key_dict[key2].at(0);
-            rv = ( m_model->m_mtime_dict[file1] < m_model->m_mtime_dict[file2] ); 
+            rv = ( m_model->m_mtime_dict[file1] < m_model->m_mtime_dict[file2] );
             }
         else if (sort_column == cb_result_model::column_ctime)
             {
             QString file1 = m_model->m_key_dict[key1].at(0);
             QString file2 = m_model->m_key_dict[key2].at(0);
-            rv = ( m_model->m_ctime_dict[file1] < m_model->m_ctime_dict[file2] ); 
+            rv = ( m_model->m_ctime_dict[file1] < m_model->m_ctime_dict[file2] );
             }
         else if (sort_column == cb_result_model::column_inode)
             {
             QString file1 = m_model->m_key_dict[key1].at(0);
             QString file2 = m_model->m_key_dict[key2].at(0);
-            rv = ( m_model->m_inode_dict[file1] < m_model->m_inode_dict[file2] ); 
+            rv = ( m_model->m_inode_dict[file1] < m_model->m_inode_dict[file2] );
             }
-        else 
+        else
             {
             auto err_msg = QObject::tr("Unforeseen column (%1)").arg(m_model->m_sort_column);
             ABORT(err_msg);
             }
         }
 
-    if (m_model->m_sort_order == Qt::SortOrder::DescendingOrder) 
+    if (m_model->m_sort_order == Qt::SortOrder::DescendingOrder)
         {
         rv = not rv;
         }
@@ -366,14 +385,14 @@ void cb_result_model::cb_select_by_script(const QString &script_name)
 
         QString message;
         bool ok;
-        cb_app->m_lua_selector->cb_call_script(script_name, 
-                                               files, 
-                                               mtimes, 
-                                               ctimes, 
-                                               inodes, 
-                                               cb_size_from_key(key), 
-                                               selected, 
-                                               ok, 
+        cb_app->m_lua_selector->cb_call_script(script_name,
+                                               files,
+                                               mtimes,
+                                               ctimes,
+                                               inodes,
+                                               cb_size_from_key(key),
+                                               selected,
+                                               ok,
                                                message);
         if (not ok)
             {
@@ -404,14 +423,14 @@ void cb_result_model::cb_do_action(const int action)
         auto err_msg = tr("Could not open: '%1'.").arg(cb_app->m_action_success_filename);
         ABORT(err_msg);
         }
-                                     
+
     QFile logfile_fail(cb_app->m_action_fail_filename);
     if (not logfile_fail.open(QIODevice::WriteOnly | QIODevice::Text))
         {
         auto err_msg = tr("Could not open: '%1'.").arg(cb_app->m_action_fail_filename);
         ABORT(err_msg);
         }
-                                     
+
     m_action_success_count = 0;
     m_action_fail_count    = 0;
 
@@ -424,7 +443,7 @@ void cb_result_model::cb_do_action(const int action)
         if (action == action_link)
             {
             for (const auto& file: files)
-                {   
+                {
                 if (m_check_states[file] == Qt::Unchecked)
                     {
                     unchecked_file = file;
@@ -523,7 +542,7 @@ void cb_result_model::cb_log_key_dict() const
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-cb_result_model::~cb_result_model() 
+cb_result_model::~cb_result_model()
     {
     qInfo() << __PRETTY_FUNCTION__;
     }

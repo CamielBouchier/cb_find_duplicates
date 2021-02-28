@@ -1,6 +1,25 @@
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 //
 // $BeginLicense$
+//
+// (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+//
+// This file is part of cb_find_duplicates.
+// All rights reserved.
+// You are granted a non-exclusive and non-transferable license to use this
+// software for personal or internal business purposes.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 // $EndLicense$
 //
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -40,8 +59,8 @@ QVariant cb_filesystem_model::data(const QModelIndex& the_index, int role) const
         {
         return m_check_states.value(the_index); // Simple case : we have the check_state already.
         }
-    else 
-        { 
+    else
+        {
         // Here we maybe have to propagate down from the parent.
         auto parent_index = the_index.parent();
         if (m_prop_down_states.contains(parent_index))
@@ -53,7 +72,7 @@ QVariant cb_filesystem_model::data(const QModelIndex& the_index, int role) const
                 setData(the_index, state, Qt::CheckStateRole);
             return state;
             }
-        else 
+        else
             {
             return Qt::Unchecked; // No. Then unchecked.
             }
@@ -68,17 +87,17 @@ bool cb_filesystem_model::setData(const QModelIndex& the_index, const QVariant& 
         {
         return QFileSystemModel::setData(the_index,value,role);
         }
-    
+
     cb_set_node(the_index,value);
-    
+
     // Upward collected from childs.
     auto parent_index = the_index.parent();
-    if (parent_index != QModelIndex()) 
+    if (parent_index != QModelIndex())
         {
         auto status = cb_get_child_status(parent_index);
         setData(parent_index, status, Qt::CheckStateRole);
         }
-    
+
     return true;
     }
 
@@ -97,7 +116,7 @@ void cb_filesystem_model::cb_set_node(const QModelIndex& the_index, const QVaria
             m_prop_down_states.remove(the_index); // Partial check is never pushed down.
             }
         }
-    else 
+    else
         {
         // Checked/Unchecked is marked for pushing down.
         m_prop_down_states[the_index] = check_value;
@@ -156,16 +175,16 @@ Qt::CheckState cb_filesystem_model::cb_get_child_status(const QModelIndex& the_i
 const QStringList cb_filesystem_model::cb_get_selected() const
     {
     QStringList selected;
-    for (const auto& the_index: m_check_states.keys()) 
+    for (const auto& the_index: m_check_states.keys())
         {
         auto parent_index =the_index.parent();
-        if ((parent_index != QModelIndex())       and 
+        if ((parent_index != QModelIndex())       and
             m_check_states.contains(parent_index) and
             (m_check_states.value(parent_index) == Qt::Checked))
             {
             continue; // Skip this one. Implied by parent.
             }
-        else if (m_check_states.contains(the_index) and 
+        else if (m_check_states.contains(the_index) and
                  (m_check_states.value(the_index) == Qt::Checked))
             {
             selected.append(filePath(the_index));
@@ -176,7 +195,7 @@ const QStringList cb_filesystem_model::cb_get_selected() const
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-cb_filesystem_model::~cb_filesystem_model() 
+cb_filesystem_model::~cb_filesystem_model()
     {
     qInfo() << __PRETTY_FUNCTION__;
     }

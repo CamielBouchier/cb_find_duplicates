@@ -1,6 +1,25 @@
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 //
 // $BeginLicense$
+//
+// (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+//
+// This file is part of cb_find_duplicates.
+// All rights reserved.
+// You are granted a non-exclusive and non-transferable license to use this
+// software for personal or internal business purposes.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 // $EndLicense$
 //
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -85,9 +104,9 @@ void cb_find_duplicates::cb_init(int& argc, char* argv[])
 
     m_ui_clock_timer.start(500);
 
-    connect(&m_ui_clock_timer, 
-            &QTimer::timeout, 
-            this, 
+    connect(&m_ui_clock_timer,
+            &QTimer::timeout,
+            this,
             &cb_find_duplicates::cb_do_gui_communication);
 
     qInfo() << "Starting:" << applicationName() << applicationVersion();
@@ -214,7 +233,7 @@ void cb_find_duplicates::cb_install_to_data_location()
         }
 
     // No reason to install ...
-    if (!do_install) 
+    if (!do_install)
         {
         qInfo() << "No data to install.";
         return;
@@ -225,7 +244,7 @@ void cb_find_duplicates::cb_install_to_data_location()
     QStringList to_copy_list;
 
     to_copy_list << "about"
-                 << "themes" 
+                 << "themes"
                  << "lua_scripts";
 
     auto base_src_dir = QApplication::applicationDirPath();
@@ -262,7 +281,7 @@ void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
     auto exe_name = QFileInfo(argv[0]).fileName();
     auto err_msg  = tr("Usage : %1 " "[-t theme]").arg(exe_name);
     err_msg += "\n(";
-    for (short i=1; i<argc; i++) 
+    for (short i=1; i<argc; i++)
         {
         err_msg += QString(" ") + argv[i];
         }
@@ -274,21 +293,21 @@ void cb_find_duplicates::cb_process_args(int& argc, char* argv[])
         }
 
     short idx = 1;
-    while (idx < argc) 
+    while (idx < argc)
         {
         QString switch_(argv[idx++]);
         QString value(argv[idx++]);
-        if (switch_ == "-t") 
+        if (switch_ == "-t")
             {
-            if (!value.endsWith(".cbt")) 
+            if (!value.endsWith(".cbt"))
                 {
                 value.append(".cbt");
                 }
             qInfo() << "Setting theme:" << value;
             m_user_settings->setValue("/theme/file", value);
-            } 
-        else 
-            { 
+            }
+        else
+            {
             ABORT(err_msg);
             }
         }
@@ -307,7 +326,7 @@ void cb_find_duplicates::cb_set_stylesheet()
         ABORT(err_msg)
         }
 
-    auto theme_file = m_data_location + "/themes/" + 
+    auto theme_file = m_data_location + "/themes/" +
                       m_user_settings->value("/theme/file", default_theme_file).toString();
     if (!QFile(theme_file).exists())
         {
@@ -320,7 +339,7 @@ void cb_find_duplicates::cb_set_stylesheet()
     m_constants_in_stylesheet.clear();  // clearing ensures we can be called multiple times.
 
     QFile stylesheet_file(theme_file);
-    if (not stylesheet_file.open(QIODevice::ReadOnly | QIODevice::Text)) 
+    if (not stylesheet_file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
         qWarning() << tr("Could not open themefile:") << theme_file;
         return;
@@ -328,7 +347,7 @@ void cb_find_duplicates::cb_set_stylesheet()
 
     QTextStream stylesheet_stream(&stylesheet_file);
     QString stylesheet;
-    while (not stylesheet_stream.atEnd()) 
+    while (not stylesheet_stream.atEnd())
         {
         QString line = stylesheet_stream.readLine().trimmed();
         if (line.isEmpty() or line.startsWith(";"))   // comment
@@ -344,7 +363,7 @@ void cb_find_duplicates::cb_set_stylesheet()
         if (line.contains("@"))     // replacement, rude inefficient algo, but serving purpose.
             {
             QHashIterator <QString,QString> i(m_constants_in_stylesheet);
-            while (i.hasNext()) 
+            while (i.hasNext())
                 {
                 i.next();
                 line.replace(i.key(),i.value());
@@ -354,7 +373,7 @@ void cb_find_duplicates::cb_set_stylesheet()
         }
     stylesheet_file.close();
 
-    if (m_constants_in_stylesheet.contains("@MANDATORY_STYLE")) 
+    if (m_constants_in_stylesheet.contains("@MANDATORY_STYLE"))
         {
         setStyle(m_constants_in_stylesheet.value("@MANDATORY_STYLE")); // preset a style.
         }
@@ -376,7 +395,7 @@ void cb_find_duplicates::cb_launch_main_window()
     window_icon.addPixmap(QPixmap(":/cb_find_duplicates/img/cb_find_duplicates_64px.png"));
     m_main_window->setWindowIcon(window_icon);
     m_main_window->setWindowTitle(cb_constants::application_name);
-    
+
     const auto& splitter_state = m_user_settings->value("window/main_splitter").toByteArray();
     m_main_window->main_splitter->restoreState(splitter_state);
 
@@ -399,7 +418,7 @@ void cb_find_duplicates::cb_install_filesystem_model()
     m_main_window->tv_dir_selector->setModel(m_filesystem_model.get());
 
     // Setting column widths.
-    int dir_selector_col0_width = 
+    int dir_selector_col0_width =
         m_user_settings->value("window/dir_selector_col0_width", 400).toInt();
     m_main_window->tv_dir_selector->setColumnWidth(0, dir_selector_col0_width);
 
@@ -416,7 +435,7 @@ void cb_find_duplicates::cb_install_result_model()
     qInfo() << __PRETTY_FUNCTION__;
 
     m_result_model = make_unique<cb_result_model>();
-  
+
     m_main_window->tv_result->setModel(m_result_model.get());
     m_main_window->tv_result->setSortingEnabled(true);
     m_main_window->tv_result->sortByColumn(cb_result_model::column_dirname,
@@ -425,7 +444,7 @@ void cb_find_duplicates::cb_install_result_model()
     for (auto column = 0; column < cb_result_model::nr_columns; column++)
         {
         int default_width = 0;
-        switch (column) 
+        switch (column)
             {
             case cb_result_model::column_basename : default_width = 180; break;
             case cb_result_model::column_dirname  : default_width = 400; break;
@@ -434,7 +453,7 @@ void cb_find_duplicates::cb_install_result_model()
             case cb_result_model::column_mtime    : default_width = 180; break;
             case cb_result_model::column_ctime    : default_width = 180; break;
             case cb_result_model::column_inode    : default_width = 140; break;
-            default : 
+            default :
                 auto err_msg = tr("Unforeseen column (%1).").arg(column);
                 ABORT(err_msg);
             }
@@ -456,7 +475,7 @@ void cb_find_duplicates::cb_install_lua_selector()
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 void cb_find_duplicates::cb_populate_action_box()
-    {  
+    {
     qInfo() << __PRETTY_FUNCTION__;
 
     m_main_window->cb_actions->addItem(tr("Delete selected"), cb_result_model::action_delete);
@@ -500,7 +519,7 @@ void cb_find_duplicates::cb_on_start_search()
     m_ui_elapsed_timer.start();
 
     auto ui_base_status = tr("Collecting files and their size:");
-  	
+
   	m_walk            = true;
     m_phase           = phase_sizes;
 	m_ui_done_files   = 0;
@@ -518,14 +537,14 @@ void cb_find_duplicates::cb_on_start_search()
         // Then, removing duplicates would be complex and risky in order not
         // to be left with dangling links. We just avoid the unnecessary risk.
 
-    	QDirIterator dir_iterator(dir, 
+    	QDirIterator dir_iterator(dir,
                                   QDir::Files | QDir::Dirs | QDir::NoSymLinks | QDir::Hidden,
                                   QDirIterator::Subdirectories);
 
     	while (dir_iterator.hasNext())
       		{
     		if (not cb_do_gui_communication()) break;
-      	
+
             auto qfi_next = QFileInfo(dir_iterator.next());
 
       		if (qfi_next.isDir())    // Additional check/report on unreadable directories.
@@ -539,7 +558,7 @@ void cb_find_duplicates::cb_on_start_search()
           			}
         		continue;
         		}
-      	
+
             auto file = qfi_next.canonicalFilePath();
             m_ui_status = ui_base_status + " " + file;
 
@@ -558,7 +577,7 @@ void cb_find_duplicates::cb_on_start_search()
       		else
         		{
         		QTextStream(&logfile_fail) << tr("Not readable:")
-						                   << file 
+						                   << file
 										   << Qt::endl;
         		m_ui_nr_failed++;
         		}
@@ -571,7 +590,7 @@ void cb_find_duplicates::cb_on_start_search()
   	// At this point we have a dictionary key(unique on Size)=>ListOfFiles
   	// Now doing partial and full MD5 calculations to break the tie
 
-    for (m_phase = phase_partial_md5; m_phase <= phase_full_md5; m_phase=cb_phase(m_phase+1)) 
+    for (m_phase = phase_partial_md5; m_phase <= phase_full_md5; m_phase=cb_phase(m_phase+1))
     	{
     	if (not cb_do_gui_communication()) break;
 
@@ -580,13 +599,13 @@ void cb_find_duplicates::cb_on_start_search()
 
 		if (m_phase == phase_partial_md5)
 			{
-			ui_base_status = tr("Calculating partial MD5 for potential duplicates:"); 
+			ui_base_status = tr("Calculating partial MD5 for potential duplicates:");
 			}
 		else
 			{
-            ui_base_status = tr("Calculating full MD5 for potential duplicates:") ; 
+            ui_base_status = tr("Calculating full MD5 for potential duplicates:") ;
 			}
-  
+
       	// Remove all entries that don't have at least 2 files.
     	for (const auto& key : key_dict.keys())
       		{
@@ -600,7 +619,7 @@ void cb_find_duplicates::cb_on_start_search()
                 m_ui_total_files -= nr_files;
                 }
       		}
-  
+
     	// Start the MD5 calculation
     	auto old_keys = key_dict.keys();    // Copy needed: removing keys from key_dict in loop.
     	for (int idx = 0; idx < old_keys.size(); idx++)
@@ -611,7 +630,7 @@ void cb_find_duplicates::cb_on_start_search()
         	const auto nr_files = key_dict[key].size();
             const auto files    = key_dict[key];    // CB: See wiki [[const QStringList - OMP]]
 
-        	if (nr_files < 2) 
+        	if (nr_files < 2)
           		{
           		auto err_msg = tr("Internal error: nr_files < 2 for key '%1': %2")
 					           .arg(key).arg(nr_files);
@@ -621,14 +640,14 @@ void cb_find_duplicates::cb_on_start_search()
       		// No point in calculating tie if it are all the same files.
             // Note: CB checked if this does not rather take away from the performance in
             // case there are only few same files. It doesn't, so it's fine to have always.
-      		if (cb_is_same_file(files)) 
+      		if (cb_is_same_file(files))
         		{
         		continue;
         		}
 
     	    #ifdef _OPENMP
                 // On my machine, and on my testcase improves from 100 minutes to 80 minutes.
-      		    #pragma omp parallel for default(shared) 
+      		    #pragma omp parallel for default(shared)
     	    #endif
             for (const auto& file : files)
         		{
@@ -640,7 +659,7 @@ void cb_find_duplicates::cb_on_start_search()
                     if (not ok)
                         {
         		        QTextStream(&logfile_fail) << tr("cb_md5_sum fail:")
-					  	                           << file 
+					  	                           << file
 							    			       << Qt::endl;
         		        m_ui_nr_failed++;
                         }
@@ -696,17 +715,17 @@ bool cb_find_duplicates::cb_do_gui_communication()
         {
 	    return m_walk;
         }
-    
+
     m_main_window->statusbar->showMessage(m_ui_status);
     m_main_window->lb_walk_fail_value->setText(QString().setNum(m_ui_nr_failed));
-    
+
     switch (m_phase)
         {
         case phase_sizes:
 
             m_main_window->lb_done_files->setText("");
             m_main_window->lb_total_files->setText("");
-            
+
             m_main_window->pb_files->setValue(0);
             m_main_window->pb_files->setVisible(false);
 
@@ -763,15 +782,15 @@ bool cb_find_duplicates::cb_do_gui_communication()
             auto time_run = QTime(0,0).addSecs(seconds_run);
             m_main_window->lb_time_value->setText(
                 m_ui_end_time.toString() + " (" + time_run.toString() + " " + tr("runtime") + ")" );
-            
+
             m_main_window->lb_overhead->setText(tr("Overhead bytes:"));
             m_main_window->lb_overhead_value->setText(
                     cb_sizestring_from_size(m_result_model->m_overhead_bytes));
 
             m_main_window->lb_extra->setText(tr("Nr groups and files:"));
             m_main_window->lb_extra_value->setText(
-                      QString::number(m_result_model->m_nr_file_groups) 
-                    + " - " 
+                      QString::number(m_result_model->m_nr_file_groups)
+                    + " - "
                     + QString::number(m_result_model->m_total_files)
                     );
 
@@ -794,7 +813,7 @@ bool cb_find_duplicates::cb_do_gui_communication()
 void cb_find_duplicates::cb_on_update_select_scripts()
     {
     qInfo() << __PRETTY_FUNCTION__;
-    
+
     const auto scripts_dir   = m_data_location + "/lua_scripts";
     const auto scripts_def   = scripts_dir + "/cb_select_manual.lua";
     const auto select_script = m_user_settings->value("action/select_script", scripts_def)
@@ -960,7 +979,7 @@ void cb_find_duplicates::cb_on_language()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
-    if (sender() == m_main_window->action_dutch) 
+    if (sender() == m_main_window->action_dutch)
         {
         m_main_window->action_dutch->setChecked(true);
         m_main_window->action_english->setChecked(false);
@@ -1020,22 +1039,22 @@ cb_find_duplicates::~cb_find_duplicates()
     qInfo() << __PRETTY_FUNCTION__;
     qInfo() << "Exiting:" << applicationName() << applicationVersion();
 
-    m_user_settings->setValue("action/action_idx", 
+    m_user_settings->setValue("action/action_idx",
                               m_main_window->cb_actions->currentIndex());
 
     auto script = m_main_window->cb_scripts->itemData(m_main_window->cb_scripts->currentIndex());
     m_user_settings->setValue("action/selectscript",
                               script);
 
-    m_user_settings->setValue("window/dir_selector_col0_width", 
+    m_user_settings->setValue("window/dir_selector_col0_width",
                               m_main_window->tv_dir_selector->columnWidth(0));
-    m_user_settings->setValue("window/main_splitter", 
+    m_user_settings->setValue("window/main_splitter",
                               m_main_window->main_splitter->saveState());
-    m_user_settings->setValue("window/geometry",      
+    m_user_settings->setValue("window/geometry",
                               m_main_window->saveGeometry());
-    m_user_settings->setValue("window/state",         
+    m_user_settings->setValue("window/state",
                               m_main_window->saveState());
-    
+
     for (auto column = 0; column < cb_result_model::nr_columns; column++)
         {
         QString key = QString("window/result_col_width_%1").arg(column);

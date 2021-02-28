@@ -1,6 +1,25 @@
 //..................................................................................................
 //
 // $BeginLicense$
+//
+// (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+//
+// This file is part of cb_find_duplicates.
+// All rights reserved.
+// You are granted a non-exclusive and non-transferable license to use this
+// software for personal or internal business purposes.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 // $EndLicense$
 //
 //..................................................................................................
@@ -18,7 +37,7 @@
 
 #include "cb_find_duplicates.h"
 #include "cb_constants.h"
- 
+
 cb_log::log_level cb_log::m_file_log_level    = debug;
 cb_log::log_level cb_log::m_console_log_level = info;
 
@@ -28,17 +47,17 @@ QString cb_log::m_logfile_name;
 QMutex  cb_log::m_mutex;
 
 //..................................................................................................
- 
+
 cb_log::cb_log(QObject *parent) : QObject(parent)
     {
 	qInstallMessageHandler(cb_handler);
     }
- 
+
 //..................................................................................................
- 
+
 cb_log::~cb_log()
     {
-	if (m_file) 
+	if (m_file)
         {
 		m_file->close();
 		delete m_file;
@@ -46,13 +65,13 @@ cb_log::~cb_log()
     }
 
 //..................................................................................................
- 
+
 void cb_log::cb_init(const cb_log::log_level& console_log_level,
                      const cb_log::log_level& file_log_level)
     {
     m_console_log_level = console_log_level;
     m_file_log_level    = file_log_level;
-    
+
     m_logdir = cb_app->m_data_location + "/" + cb_constants::log::logdir_name;
 
     if (!QDir(m_logdir).exists())
@@ -66,7 +85,7 @@ void cb_log::cb_init(const cb_log::log_level& console_log_level,
 
     // logfile creation.
 
-    m_logfile_name = 
+    m_logfile_name =
         m_logdir + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmsszzz.log");
     m_file = new QFile(m_logfile_name);
 	if (not  m_file->open(QIODevice::WriteOnly))
@@ -82,16 +101,16 @@ void cb_log::cb_init(const cb_log::log_level& console_log_level,
     }
 
 //..................................................................................................
- 
+
 void cb_log::cb_clean_logdir()
     {
     qInfo() << __PRETTY_FUNCTION__;
 
     auto& settings = cb_app->m_user_settings;
 
-    int max_entries = 
+    int max_entries =
         settings->value("log/max_entries", cb_constants::log::max_entries).toInt();
-    int days_to_keep = 
+    int days_to_keep =
         settings->value("log/days_to_keep", cb_constants::log::days_to_keep).toInt();
 
     settings->setValue("log/max_entries", max_entries);
@@ -105,7 +124,7 @@ void cb_log::cb_clean_logdir()
         auto expiration_date = entry_info.lastModified().addDays(days_to_keep);
         /*
         qDebug() << nr_entries
-                 << entry_info.fileName() 
+                 << entry_info.fileName()
                  << entry_info.lastModified().toString()
                  << expiration_date.toString();
         */
@@ -122,15 +141,15 @@ void cb_log::cb_clean_logdir()
             }
         }
     }
- 
+
 //..................................................................................................
- 
+
 void cb_log::cb_handler(QtMsgType msg_type, const QMessageLogContext& context, const QString& msg)
-    {    
+    {
     QMutexLocker locker(&m_mutex);
 
     QString str_type;
-    switch (msg_type) 
+    switch (msg_type)
         {
         case QtDebugMsg:
 		    str_type = "D";
@@ -150,15 +169,15 @@ void cb_log::cb_handler(QtMsgType msg_type, const QMessageLogContext& context, c
 
     QList<QtMsgType> types = {QtDebugMsg, QtInfoMsg, QtWarningMsg, QtCriticalMsg, QtFatalMsg};
     int level = types.indexOf(msg_type);
- 
+
 	QString str_date = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss:zzz");
 	QString str_file(context.file);
 	QString str_line(QString::number(context.line));
-	if (context.line != 0) 
+	if (context.line != 0)
         {
 		str_file = str_file.mid(str_file.lastIndexOf("\\")+1);
 	    }
-	
+
     #ifdef QT_DEBUG
         QString str_log = QString("%1:%2 %3 %4 %5\n")
                           .arg(str_type)
@@ -172,7 +191,7 @@ void cb_log::cb_handler(QtMsgType msg_type, const QMessageLogContext& context, c
                           .arg(str_date)
                           .arg(msg);
     #endif
- 
+
     if (level >= m_file_log_level)
         {
 	    m_file->write(qPrintable(str_log));
@@ -184,13 +203,13 @@ void cb_log::cb_handler(QtMsgType msg_type, const QMessageLogContext& context, c
         QTextStream(stdout) << str_log;
         }
 
-    if (msg_type == QtFatalMsg) 
+    if (msg_type == QtFatalMsg)
         {
         QTextStream(stderr) << "Aborting." << Qt::endl;
         abort();
         }
     }
- 
+
 //..................................................................................................
 
 // vim: syntax=cpp ts=4 sw=4 sts=4 sr et columns=100

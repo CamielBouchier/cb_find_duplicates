@@ -1,8 +1,27 @@
 #;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-# 
+#
 #  $BeginLicense$
+#
+#  (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+#
+#  This file is part of cb_find_duplicates.
+#  All rights reserved.
+#  You are granted a non-exclusive and non-transferable license to use this
+#  software for personal or internal business purposes.
+#
+#  THIS SOFTWARE IS PROVIDED "AS IS" AND
+#  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#  DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+#  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 #  $EndLicense$
-# 
+#
 #;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #                                               -*- Autoconf -*-
@@ -10,8 +29,8 @@
 
 AC_PREREQ([2.64])
 
-AC_INIT([cb_find_duplicates], 
-        [0_1_0],    
+AC_INIT([cb_find_duplicates],
+        [0_1_0],
         [cb_find_duplicates@bouchier.be],
         [cb_find_duplicates_0_1_0.tgz])
 
@@ -172,7 +191,7 @@ AC_ARG_WITH([openmp],
             [],
             [with_openmp=yes])
 
-# If user did not disable, let first see if our compiler has the 
+# If user did not disable, let first see if our compiler has the
 # option for it.
 if test "$with_openmp" = yes; then
   AX_OPENMP( [OPENMP=1], [OPENMP=0])
@@ -253,7 +272,7 @@ AC_SUBST(LUA_LIBS)
 #
 # Issue output (substituting stuff in the .in file)
 # At this moment only the cb_find_duplicatesProject.pro is generated this way.
-# 
+#
 ################################################################################
 
 AC_CONFIG_FILES([cb_find_duplicates.pro])

@@ -1,13 +1,32 @@
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 //
 // $BeginLicense$
+//
+// (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+//
+// This file is part of cb_find_duplicates.
+// All rights reserved.
+// You are granted a non-exclusive and non-transferable license to use this
+// software for personal or internal business purposes.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 // $EndLicense$
 //
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #include "cb_abort.h"
 #include "cb_lua_selector.h"
-  
+
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 static const luaL_Reg lua_libs[] =
@@ -23,7 +42,7 @@ static const luaL_Reg lua_libs[] =
 cb_lua_selector::cb_lua_selector()
     {
     qInfo() << __PRETTY_FUNCTION__;
-    
+
     m_L = luaL_newstate();
     if (not m_L)
         {
@@ -40,7 +59,7 @@ cb_lua_selector::cb_lua_selector()
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_lua_selector::cb_call_script(const QString&         script_name, 
+void cb_lua_selector::cb_call_script(const QString&         script_name,
                                      const QStringList&     files,
                                      const QList<uint32_t>& mtimes,
                                      const QList<uint32_t>& ctimes,
@@ -49,13 +68,13 @@ void cb_lua_selector::cb_call_script(const QString&         script_name,
                                            QList <bool>&    selected,
                                            bool&            ok,
                                            QString&         message)
-     
+
     {
     // qInfo() << __PRETTY_FUNCTION__;
-    //         << "script_name:" 
+    //         << "script_name:"
     //         << script_name;
 
-    if ((selected.size() != files.size())  or 
+    if ((selected.size() != files.size())  or
         (selected.size() != mtimes.size()) or
         (selected.size() != ctimes.size()) or
         (selected.size() != inodes.size()) )
@@ -88,16 +107,16 @@ void cb_lua_selector::cb_call_script(const QString&         script_name,
             lua_pushinteger(m_L, key+1);
             switch (arg)
                 {
-                case 0 : 
+                case 0 :
                     lua_pushstring(m_L, qPrintable(files.at(key)));
                     break;
-                case 1 : 
+                case 1 :
                     lua_pushinteger(m_L, mtimes.at(key));
                     break;
-                case 2 : 
+                case 2 :
                     lua_pushinteger(m_L, ctimes.at(key));
                     break;
-                case 3 : 
+                case 3 :
                     lua_pushinteger(m_L, inodes.at(key));
                     break;
                 }
@@ -157,13 +176,13 @@ void cb_lua_selector::cb_call_script(const QString&         script_name,
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_lua_selector::cb_get_script_info(const QString& script_name, 
+void cb_lua_selector::cb_get_script_info(const QString& script_name,
                                                QString& title,
                                                QString& description,
                                                bool&    ok,
                                                QString& message)
     {
-    // qInfo() << __PRETTY_FUNCTION__ 
+    // qInfo() << __PRETTY_FUNCTION__
     //         << script_name
     //         << title
     //         << description
@@ -178,16 +197,16 @@ void cb_lua_selector::cb_get_script_info(const QString& script_name,
         return;
         }
 
-    struct field { const char*    field_name; 
+    struct field { const char*    field_name;
                          bool     is_function;
                          QString& value;};
     QString dummy;
-    const field fields[] = 
-        { 
+    const field fields[] =
+        {
             { "title"      , false , title       },
             { "description", false , description },
             { "select"     , true  , dummy       },
-            { nullptr      , false , dummy       } 
+            { nullptr      , false , dummy       }
         };
     const field* x = fields;
     for(; x->field_name != nullptr; x++)
@@ -214,7 +233,7 @@ void cb_lua_selector::cb_get_script_info(const QString& script_name,
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-cb_lua_selector::~cb_lua_selector() 
+cb_lua_selector::~cb_lua_selector()
     {
     qInfo() << __PRETTY_FUNCTION__;
     lua_close(m_L);

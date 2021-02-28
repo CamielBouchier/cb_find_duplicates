@@ -1,6 +1,25 @@
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 //
 // $BeginLicense$
+//
+// (C) 2015-2021 by Camiel Bouchier (camiel@bouchier.be)
+//
+// This file is part of cb_find_duplicates.
+// All rights reserved.
+// You are granted a non-exclusive and non-transferable license to use this
+// software for personal or internal business purposes.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL Camiel Bouchier BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
 // $EndLicense$
 //
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -24,7 +43,7 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
     menubar->removeAction(menuLanguage->menuAction());
 
     // GB DirSelector
-    
+
     gb_dir_selector->setTitle(tr("Directory selection"));
 
     // GB StartStop
@@ -88,7 +107,7 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
     cb_set_config(config_start);
 
     // Menu connects.
-    
+
     auto at = &QAction::triggered;
 
     connect(action_quit,    at, cb_app, &cb_find_duplicates::cb_on_quit);
@@ -98,7 +117,7 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
     connect(action_english, at, cb_app, &cb_find_duplicates::cb_on_language);
 
     // Other connects.
-    
+
     auto tbc = &QToolButton::clicked;
 
     connect(tb_start_search,   tbc, cb_app, &cb_find_duplicates::cb_on_start_search);
@@ -113,7 +132,7 @@ cb_main_window::cb_main_window() : QMainWindow(nullptr)
 
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-void cb_main_window::cb_reset_progress_box() 
+void cb_main_window::cb_reset_progress_box()
     {
     lb_done_files->setText("");
     lb_slash->setText("");
@@ -156,7 +175,7 @@ void cb_main_window::cb_set_config(const cb_config& config)
         tv_result->setEnabled(false);
         tb_action->setEnabled(false);
         }
-    else if (config == config_selecting) 
+    else if (config == config_selecting)
         {
         gb_dir_selector->setEnabled(true);
         tb_start_search->setEnabled(true);
@@ -166,7 +185,7 @@ void cb_main_window::cb_set_config(const cb_config& config)
         tv_result->setEnabled(true);
         tb_action->setEnabled(true);
         }
-    else 
+    else
         {
         auto err_msg = QString("unforeseen config: %1").arg(config);
         ABORT(err_msg);
@@ -182,7 +201,7 @@ void cb_main_window::closeEvent(QCloseEvent* event)
     event->ignore();
     cb_app->cb_on_quit();
     }
-    
+
 //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cb_main_window::~cb_main_window()
