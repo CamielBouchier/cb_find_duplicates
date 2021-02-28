@@ -6,6 +6,7 @@
 /Makefile
 /Makefile.*
 /object_script.*
+/*.rc
 *.exe
 *.log
 *.o
@@ -16,3 +17,4 @@ resources/*
 configure_tests/*/makefile
 autom4te.cache/*
 *-build-dir/*
+dist_windows/*

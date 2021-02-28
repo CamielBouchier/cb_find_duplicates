@@ -1328,7 +1328,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-x                use the X Window System
   --without-openmp        disable openmp
-  --without-console       disable console
+  --with-console          enable console
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -5102,9 +5102,7 @@ fi
 
 # Check whether --with-console was given.
 if test "${with_console+set}" = set; then :
-  withval=$with_console;
-else
-  with_console=yes
+  withval=$with_console; with_console=yes
 fi
 
 

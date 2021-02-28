@@ -228,10 +228,10 @@ AC_SUBST(DENY_OPENMP_CFLAGS)
 ################################################################################
 
 AC_ARG_WITH([console],
-            [AS_HELP_STRING([--without-console],
-                            [disable console])],
-            [],
-            [with_console=yes])
+            [AS_HELP_STRING([--with-console],
+                            [enable console])],
+            [with_console=yes],
+            [])
 
 if test "$with_console" = yes; then
   CONSOLE=console

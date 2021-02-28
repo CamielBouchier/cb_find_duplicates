@@ -45,6 +45,9 @@ QT += widgets
     QMAKE_CXXFLAGS_EXCEPTIONS_ON -= -mthreads
     }
 
+# Windows icon
+win32:RC_ICONS += img/cb_find_duplicates.ico
+
 # Start values : taken from configure
 QMAKE_CXXFLAGS_RELEASE     += @CXXFLAGS@
 QMAKE_CXXFLAGS_DEBUG       += @CXXFLAGS@

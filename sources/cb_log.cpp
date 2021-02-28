@@ -159,12 +159,19 @@ void cb_log::cb_handler(QtMsgType msg_type, const QMessageLogContext& context, c
 		str_file = str_file.mid(str_file.lastIndexOf("\\")+1);
 	    }
 	
-    QString str_log = 
-        QString("%1:%2 %3 %4 %5\n").arg(str_type)
-                                     .arg(str_date)
-                                     .arg(str_file, 32)
-                                     .arg(str_line, 4)
-                                     .arg(msg);
+    #ifdef QT_DEBUG
+        QString str_log = QString("%1:%2 %3 %4 %5\n")
+                          .arg(str_type)
+                          .arg(str_date)
+                          .arg(str_file, 32)
+                          .arg(str_line, 4)
+                          .arg(msg);
+    #else
+        QString str_log = QString("%1:%2 %3\n")
+                          .arg(str_type)
+                          .arg(str_date)
+                          .arg(msg);
+    #endif
  
     if (level >= m_file_log_level)
         {
