@@ -125,7 +125,7 @@ def handle_file(filename) :
         logger.info("No 'EndLicense' found in '{}'".format(filename))
         return
 
-    with open(filename, "w", encoding="utf-8") as f :
+    with open(filename, "w", encoding="utf-8", newline='\n') as f :
         skipping = False
         for line in file_lines :
             if not skipping :
